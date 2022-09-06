@@ -1,24 +1,65 @@
-// import db from '../util/database.js';
+import {
+    socialaudience, 
+    secretweb, 
+    socialmedia, 
+    mediasolution,
+    medialab,
+    buyFollowers,
+    getfollowers,
+    growfollowers,
+    pool, 
+} from '../util/database.js';
 
 import config  from './../config/DBconnect.js';
-import mysql from 'mysql2';
 
 export class auth {
 
     static dbConnect() {
-        // if (config.DBcreated.database != "socialaudience") {
-        //     config.DBcreated.database = "tesafollowers";
-        // }
 
-        const pool = mysql.createPool({
-            host: config.DBcreated.host,
-            port: config.DBcreated.port,
-            user: config.DBcreated.user,
-            database: config.DBcreated.database,
-            password: config.DBcreated.password
-        });
+        switch (config.hostState.siteName) {
+            case "socialaudience.club":
+                return socialaudience.promise();
 
-        return pool.promise();
+                break;
+    
+            case "secretweb.vip":
+                // config.DBcreated.database = "tesafollowers";
+                return secretweb.promise();
+                break;
+    
+            case "socialmedia.24s.club":
+                return socialmedia.promise();
+                break;
+    
+            case "mediasolution.24s.club":
+                return mediasolution.promise();
+                break;
+    
+            case "medialab.24s.club":
+                return medialab.promise();
+
+                break;
+    
+            case "buyfollowers.24s.club":
+                return buyFollowers.promise();
+
+                break;
+    
+            case "getfollowers.24s.club":
+                return getfollowers.promise();
+
+                break;
+    
+            case "growfollowers.24s.club":
+                return growfollowers.promise();
+
+                break;
+        
+            default:
+
+                return pool.promise();
+                break;
+        }
     };
 
     constructor() {}
@@ -126,15 +167,50 @@ export class auth {
 export class user {
     
     static dbConnect() {
-        const pool = mysql.createPool({
-            host: config.DBcreated.host,
-            port: config.DBcreated.port,
-            user: config.DBcreated.user,
-            database: config.DBcreated.database,
-            password: config.DBcreated.password
-        });
+        switch (config.hostState.siteName) {
+            case "socialaudience.club":
+                return socialaudience.promise();
 
-        return pool.promise();
+                break;
+    
+            case "secretweb.vip":
+                // config.DBcreated.database = "tesafollowers";
+                return secretweb.promise();
+                break;
+    
+            case "socialmedia.24s.club":
+                return socialmedia.promise();
+                break;
+    
+            case "mediasolution.24s.club":
+                return mediasolution.promise();
+                break;
+    
+            case "medialab.24s.club":
+                return medialab.promise();
+
+                break;
+    
+            case "buyfollowers.24s.club":
+                return buyFollowers.promise();
+
+                break;
+    
+            case "getfollowers.24s.club":
+                return getfollowers.promise();
+
+                break;
+    
+            case "growfollowers.24s.club":
+                return growfollowers.promise();
+
+                break;
+        
+            default:
+
+                return pool.promise();
+                break;
+        }
     };
 
     constructor() {}

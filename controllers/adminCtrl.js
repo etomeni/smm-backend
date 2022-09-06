@@ -570,8 +570,7 @@ export const deleteServiceCtr = async (req, res, next) => {
         const result = [];
         
         for (let i = 0; i < serviceIDs.length; i++) {
-            let serviceIDresult = await admin.deleteService(serviceIDs[i]);
-            // let serviceIDresult = "await admin.deleteService(serviceIDs[i])";
+            let serviceIDresult = await services.deleteServiceByID(serviceIDs[i]);
 
             result.push(serviceIDresult);
         }

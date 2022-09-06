@@ -1,21 +1,65 @@
-// import db from '../util/database.js';
+import {
+    socialaudience, 
+    secretweb, 
+    socialmedia, 
+    mediasolution,
+    medialab,
+    buyFollowers,
+    getfollowers,
+    growfollowers,
+    pool, 
+} from '../util/database.js';
 
 import config  from './../config/DBconnect.js';
-import mysql from 'mysql2';
-
 
 export class admin {
     
     static dbConnect() {
-        const pool = mysql.createPool({
-            host: config.DBcreated.host,
-            port: config.DBcreated.port,
-            user: config.DBcreated.user,
-            database: config.DBcreated.database,
-            password: config.DBcreated.password
-        });
 
-        return pool.promise();
+        switch (config.hostState.siteName) {
+            case "socialaudience.club":
+                return socialaudience.promise();
+
+                break;
+    
+            case "secretweb.vip":
+                // config.DBcreated.database = "tesafollowers";
+                return secretweb.promise();
+                break;
+    
+            case "socialmedia.24s.club":
+                return socialmedia.promise();
+                break;
+    
+            case "mediasolution.24s.club":
+                return mediasolution.promise();
+                break;
+    
+            case "medialab.24s.club":
+                return medialab.promise();
+
+                break;
+    
+            case "buyfollowers.24s.club":
+                return buyFollowers.promise();
+
+                break;
+    
+            case "getfollowers.24s.club":
+                return getfollowers.promise();
+
+                break;
+    
+            case "growfollowers.24s.club":
+                return growfollowers.promise();
+
+                break;
+        
+            default:
+
+                return pool.promise();
+                break;
+        }
     };
 
     constructor() { }
@@ -183,28 +227,6 @@ export class admin {
             'SELECT * FROM payment_transactions WHERE 1;',
             // [user.userID]
         );
-    };
-
-    // Service/service db change
-    static deleteService(data) {
-        if (config.hostState.siteName.includes("24s.club") || config.hostState.siteName == "secretweb.vip") {
-            config.DBcreated.database = "tesafollowers";
-        }
-    
-        if (config.hostState.siteName.includes("socialaudience.club") || config.hostState.siteName == "socialaudience.club") {
-            config.DBcreated.database = "socialaudience";
-        }
-    
-        if (config.hostState.siteName.includes("localhost") || config.hostState.siteName == "localhost") {
-            config.DBcreated.database = "smmperfect";
-        }
-
-        const db = this.dbConnect();
-
-        return db.execute(
-            `DELETE FROM services WHERE services.serviceID = ?;`,
-            [ data ]
-        )
     };
 
     static getAllProviders() {
@@ -502,41 +524,6 @@ export class admin {
             sqlText,
         );
     }
-
-
-
-
-    static sdfsdeletdfgdfeService(data) {
-        if (config.hostState.siteName.includes("24s.club") || config.hostState.siteName == "secretweb.vip") {
-            config.DBcreated.database = "tesafollowers";
-        }
-    
-        if (config.hostState.siteName.includes("socialaudience.club") || config.hostState.siteName == "socialaudience.club") {
-            config.DBcreated.database = "socialaudience";
-        }
-    
-        if (config.hostState.siteName.includes("localhost") || config.hostState.siteName == "localhost") {
-            config.DBcreated.database = "smmperfect";
-        }
-        
-        const db = this.dbConnect();
-
-        for (let i = 0; i < data.length; i++) {
-            const element = data[i];
-
-            let opr = i+1; 
-            if (opr  == data.length) {
-                return db.execute(
-                    `DELETE FROM services WHERE serviceID = ${element};`,
-                )
-            } else {
-                db.execute(
-                    `DELETE FROM services WHERE serviceID = ${element};`,
-                )
-            }
-  
-        }
-    };
 
     // static deleteApiProvider(data) {
     //     return db.execute(

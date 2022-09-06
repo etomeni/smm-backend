@@ -1,33 +1,39 @@
-// import db from '../util/database.js';
+import {
+    socialaudience, 
+    secretweb, 
+    socialmedia, 
+    mediasolution,
+    medialab,
+    buyFollowers,
+    getfollowers,
+    growfollowers,
+    pool, 
+} from '../util/database.js';
+
 import config  from './../config/DBconnect.js';
-import mysql from 'mysql2';
 
 
 export class services {
 
     static dbConnect() {
-        // console.log(config.DBcreated);
+        let db = pool.promise();
+
         if (config.hostState.siteName.includes("24s.club") || config.hostState.siteName == "secretweb.vip") {
-            config.DBcreated.database = "tesafollowers";
+            // config.DBcreated.database = "tesafollowers";
+            db = secretweb.promise();
         }
     
         if (config.hostState.siteName.includes("socialaudience.club") || config.hostState.siteName == "socialaudience.club") {
-            config.DBcreated.database = "socialaudience";
+            // config.DBcreated.database = "socialaudience";
+            db = socialaudience.promise();
         }
     
         if (config.hostState.siteName.includes("localhost") || config.hostState.siteName == "localhost") {
-            config.DBcreated.database = "smmperfect";
+            // config.DBcreated.database = "smmperfect";
+            db = pool.promise();
         }
-        
-        const pool = mysql.createPool({
-            host: config.DBcreated.host,
-            port: config.DBcreated.port,
-            user: config.DBcreated.user,
-            database: config.DBcreated.database,
-            password: config.DBcreated.password
-        });
 
-        return pool.promise();
+        return db;
     };
 
     constructor() { }
@@ -66,6 +72,15 @@ export class services {
             `DELETE FROM services WHERE (${services.key}) = ${services.keyValue}`,
             [ services.value ]
         )
+    };
+
+    static deleteServiceByID(serviceID) {
+        const db = this.dbConnect();
+
+        return db.execute(
+            `DELETE FROM services WHERE services.serviceID = ?;`,
+            [ serviceID ]
+        );
     };
 
     static updateService(services) {

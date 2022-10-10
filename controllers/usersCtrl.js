@@ -31,7 +31,7 @@ export const placeOrderCtr = async (req, res, next) => {
     
         let status;
         let note = [];
-    
+
         // get the user current data to check bal
         let Cuser = await user.getCurrentUser({userID: req.body.userID});
         let CuserDetails;
@@ -126,8 +126,8 @@ export const placeOrderCtr = async (req, res, next) => {
         try {
             const apiProviderServices = await axios.post(`${apiProviderDetails.url}?key=${apiProviderDetails.apiKey}&action=services`);
     
-            let service = apiProviderServices.find(obj => obj.service == req.body.serviceID);
-    
+            let service = apiProviderServices.data.find(obj => obj.service == req.body.serviceID);
+
             if(service) {
                 if (service.rate > servicexx.resellRate || service.rate > servicexx.providerRate) {
                     // update the record with the new pricing
@@ -151,12 +151,8 @@ export const placeOrderCtr = async (req, res, next) => {
                         error
                     });
                 }
-    
-                // if (service.rate > servicexx.providerRate) {
-                    
-                // }
             }
-    
+
         } catch (error) {
             return res.status(500).json({
                 status: 500,
@@ -164,7 +160,7 @@ export const placeOrderCtr = async (req, res, next) => {
                 error
             });
         }
-        
+
         // NOTE::: update the current balance of the API Provider
         let err;
         try {

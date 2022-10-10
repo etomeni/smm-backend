@@ -12,6 +12,7 @@ import apiV1Routes from './routes/api/apiv1.js';
 import adminRoutes from './routes/admin/admin.js';
 import usersRoutes from './routes/users/users.js';
 import sendmailRoutes from './routes/email/sendMail.js';
+import firebaseRoute from './routes/firebase/firebaseUpload.js';
 
 import { get404, get500, getSource } from './controllers/error.js';
 
@@ -33,7 +34,8 @@ app.use('/api/users', usersRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/uploads', express.static('uploads'));
 
-app.use('/sendMail', sendmailRoutes);
+app.use('/api/sendMail', sendmailRoutes);
+app.use('/api/firebaseUpload', firebaseRoute);
 
 app.use(get404);
 app.use(get500);

@@ -10,6 +10,10 @@ export const getSource = async (req, res, next) => {
             case "socialaudience.club":
                 config.DBcreated.database = "socialaudience";
                 break;
+
+            case "mediasolution.club":
+                config.DBcreated.database = "godwin";
+                break;
     
             case "secretweb.vip":
                 config.DBcreated.database = "tesafollowers";
@@ -38,7 +42,46 @@ export const getSource = async (req, res, next) => {
             case "growfollowers.24s.club":
                 config.DBcreated.database = "growfollowers";
                 break;
-        
+    
+            // ------------------------------------------------------------
+            case "jetmedia.24s.club":
+                config.DBcreated.database = "jetmedia";
+                break;
+    
+            case "mediahub.24s.club":
+                config.DBcreated.database = "mediahub";
+                break;
+    
+            case "surefollowers.24s.club":
+                config.DBcreated.database = "surefollowers";
+                break;
+    
+            case "followershub.24s.club":
+                config.DBcreated.database = "followershub";
+                break;
+    
+            case "gainfollowers.24s.club":
+                config.DBcreated.database = "gainfollowers";
+                break;
+    
+            case "promedia.24s.club":
+                config.DBcreated.database = "promedia";
+                break;
+    
+            case "growmedia.24s.club":
+                config.DBcreated.database = "growmedia";
+                break;
+    
+            case "mediagrowth.24s.club":
+                config.DBcreated.database = "mediagrowth";
+                break;
+    
+            case "socialgrowth.24s.club":
+                config.DBcreated.database = "socialgrowth";
+                break;
+
+            // -------------------------------------------------------------
+    
             default:
                 config.DBcreated.database = "smmperfect";
                 // config.DBcreated.database = "tesafollowers";

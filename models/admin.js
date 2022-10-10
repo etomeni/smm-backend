@@ -1,5 +1,6 @@
 import {
     socialaudience, 
+    godwin,
     secretweb, 
     socialmedia, 
     mediasolution,
@@ -7,6 +8,17 @@ import {
     buyFollowers,
     getfollowers,
     growfollowers,
+
+    jetmedia,
+    mediahub,
+    surefollowers,
+    followershub,
+    gainfollowers,
+    promedia,
+    growmedia,
+    mediagrowth,
+    socialgrowth,
+
     pool, 
 } from '../util/database.js';
 
@@ -19,6 +31,11 @@ export class admin {
         switch (config.hostState.siteName) {
             case "socialaudience.club":
                 return socialaudience.promise();
+
+                break;
+    
+            case "mediasolution.club":
+                return godwin.promise();
 
                 break;
     
@@ -54,6 +71,44 @@ export class admin {
                 return growfollowers.promise();
 
                 break;
+            // ----------------------------------------
+            case "jetmedia.24s.club":
+                return jetmedia.promise();
+
+                break;
+            case "mediahub.24s.club":
+                return mediahub.promise();
+
+                break;
+            case "surefollowers.24s.club":
+                return surefollowers.promise();
+
+                break;
+            case "followershub.24s.club":
+                return followershub.promise();
+
+                break;
+            case "gainfollowers.24s.club":
+                return gainfollowers.promise();
+
+                break;
+            case "promedia.24s.club":
+                return promedia.promise();
+
+                break;
+            case "growmedia.24s.club":
+                return growmedia.promise();
+
+                break;
+            case "mediagrowth.24s.club":
+                return mediagrowth.promise();
+
+                break;
+            case "socialgrowth.24s.club":
+                return socialgrowth.promise();
+
+                break;
+            // ----------------------------------------
         
             default:
 

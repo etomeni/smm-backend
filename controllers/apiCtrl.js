@@ -22,40 +22,31 @@ export const apiv1ctr = async (req, res, next) => {
     
         const key = req.query.key;
         // API key authentication
-        let apiUser;
-        try {
-            apiUser = await auth.findByApiKey(key);
-            apiUser = apiUser[0];
-        
-            if (apiUser.length > 1) {
-                const error = {
-                    message: "Api Key Error! Please reset the key or contact the admin for help"
-                }
-        
-                return res.status(401).json({
-                    statusCode: 401,
-                    error,
-                });
-            }
-        
-            if (apiUser.length < 1 || !apiUser || !apiUser.length) {
-                const error = {
-                    message: "unauthorized access! Wrong api key"
-                }
-        
-                return res.status(401).json({
-                    statusCode: 401,
-                    error,
-                });
-            }
-            apiUser = apiUser[0];
+        let apiUser = await auth.findByApiKey(key);
+        apiUser = apiUser[0];
     
-        } catch (error) {
-             if (!error.statusCode) {
-                error.statusCode = 500;
+        if (apiUser.length > 1) {
+            const error = {
+                message: "Api Key Error! Please reset the key or contact the admin for help"
             }
-            next(error);
+    
+            return res.status(401).json({
+                statusCode: 401,
+                error,
+            });
         }
+    
+        if (apiUser.length < 1 || !apiUser || !apiUser.length) {
+            const error = {
+                message: "unauthorized access! Wrong api key"
+            }
+    
+            return res.status(401).json({
+                statusCode: 401,
+                error,
+            });
+        }
+        apiUser = apiUser[0];
         
         // checks if the user specified the action to carry out
         var action_options = ["services", "order", "status", "balance"];
@@ -305,6 +296,45 @@ export const apiv1ctr = async (req, res, next) => {
     
                     return res.status(500).json({
                         statusCode: 500,
+                        error
+                    });
+                }
+
+                // check api provider price
+                try {
+                    const apiProviderServices = await axios.post(`${apiProviderDetails.url}?key=${apiProviderDetails.apiKey}&action=services`);
+            
+                    let service = apiProviderServices.data.find(obj => obj.service == req.body.serviceID);
+
+                    if(service) {
+                        if (service.rate > servicexx.resellRate || service.rate > servicexx.providerRate) {
+                            // update the record with the new pricing
+            
+                            let price = service.rate + (service.rate * 30/100);
+                            const newPrice = Math.round((price + Number.EPSILON) * 100) / 100;
+            
+                            const updateDetails = {
+                                colombName: ["resellRate", "providerRate"],
+                                NewColombNameValue: [newPrice, service.rate],
+                        
+                                conditionColombName: ["serviceID"],
+                                conditionColombValue: [req.body.serviceID]
+                            };
+                            
+                            await services.updateMultipleServices(updateDetails);
+            
+                            return res.status(500).json({
+                                status: 500,
+                                message: "pricing error, please refresh and try again!",
+                                error
+                            });
+                        }
+                    }
+
+                } catch (error) {
+                    return res.status(500).json({
+                        status: 500,
+                        message: "an error occured!",
                         error
                     });
                 }

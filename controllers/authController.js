@@ -316,7 +316,7 @@ export const sendPasswordResetEmailCtr = async (req, res, next) => {
             <p style="padding: 12px; border-left: 4px solid #d0d0d0; font-style: italic;"><strong>${verificationToken}</strong></p>
             <p>&nbsp;</p>
             <p>If you're not expecting this request, then someone is trying to access your account. Please ensure your account is safe and secured or contact us immediately.</p>
-            <p>Thanks for choosing <span style="color: #de2341;">${hostname}</span> Followers.</p>
+            <p>Thanks for choosing <span style="color: #de2341;">${hostname}</span>.</p>
             <p>&nbsp;</p>
             <p><em>Best wishes,</em><br><strong>Team <span style="color: #de2341;">${hostname}</span></strong></p>
         `;

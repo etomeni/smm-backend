@@ -1,5 +1,6 @@
 import {
     socialaudience, 
+    godwin,
     secretweb, 
     socialmedia, 
     mediasolution,
@@ -7,6 +8,17 @@ import {
     buyFollowers,
     getfollowers,
     growfollowers,
+
+    jetmedia,
+    mediahub,
+    surefollowers,
+    followershub,
+    gainfollowers,
+    promedia,
+    growmedia,
+    mediagrowth,
+    socialgrowth,
+
     pool, 
 } from '../util/database.js';
 
@@ -26,6 +38,11 @@ export class services {
         if (config.hostState.siteName.includes("socialaudience.club") || config.hostState.siteName == "socialaudience.club") {
             // config.DBcreated.database = "socialaudience";
             db = socialaudience.promise();
+        }
+    
+        if (config.hostState.siteName.includes("mediasolution.club") || config.hostState.siteName == "mediasolution.club") {
+            // config.DBcreated.database = "godwin";
+            db = godwin.promise();
         }
     
         if (config.hostState.siteName.includes("localhost") || config.hostState.siteName == "localhost") {

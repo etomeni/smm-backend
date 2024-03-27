@@ -1,0 +1,72 @@
+ssh -i "ssh/tesaFollowersEC2keyPair.pem" ubuntu@ec2-44-202-239-134.compute-1.amazonaws.com
+
+cd /etc/nginx/sites-available
+sudo cp mediahub.24s.club gainfollowers.24s.club
+
+sudo ln -s /etc/nginx/sites-available/socialgrowth.24s.club /etc/nginx/sites-enabled/
+sudo systemctl restart nginx
+
+sudo certbot --nginx
+
+
+mysql -u sunday -p
+secretWeb.vip@tesaFollowers1
+
+SHOW databases;
+CREATE DATABASE promedia;
+USE promedia;
+SOURCE secretWebx.sql;
+
+mediasolution.club
+socialaudience.club
+
+buyfollowers
+getfollowers
+growfollowers
+medialab
+socialmedia
+
+gainfollowers
+surefollowers
+followershub
+socialgrowth
+mediagrowth
+growmedia
+promedia
+mediahub
+jetmedia
+
+http://localhost:5000/
+
+https://jetmedia.24s.club/api/
+
+SELECT * FROM `users`;
+DELETE FROM `users` WHERE `users`.`id` = 32;
+DELETE FROM `users` WHERE `users`.`id` = 40;
+
+SELECT * FROM `payment_transactions`;
+DELETE FROM `payment_transactions` WHERE `payment_transactions`.`id` = 14;
+DELETE FROM `payment_transactions` WHERE `payment_transactions`.`id` = 15;
+
+SELECT * FROM `orders`;
+DELETE FROM `orders` WHERE `orders`.`id` = 39;
+DELETE FROM `orders` WHERE `orders`.`id` = 40;
+
+ALTER TABLE `services` CHANGE `description` `description` MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;
+
+
+sudo git clone https://github.com/etomeni/childpanel.git;
+
+sudo cp -R childpanel/newChildPanel ./
+sudo cp -R childpanel/godwin ./
+
+sudo rm -rf childpanel
+sudo rm -rf godwin
+
+
+AudioMack
+Audiomack
+UPDATE `services` SET `serviceProvider`='Audiomack' WHERE `serviceProvider` = 'AudioMack';
+
+UPDATE `orders` SET `providerOrderID` = 57249 WHERE `orders`.`orderID` = 1667548226641;
+UPDATE `orders` SET `status` = 'Completed' WHERE `orders`.`orderID` = 1667548226641;

@@ -1,3 +1,14 @@
+## dot env file content required
+```
+MONGO_DB_ACCESS_URI
+
+JWT_SECRET
+
+EMAIL_USER
+EMAIL_PASSWORD
+```
+
+
 # Working with linux commands
 
 ## Deleting Commands

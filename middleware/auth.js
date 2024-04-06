@@ -1,5 +1,4 @@
 import Jwt  from "jsonwebtoken";
-import envData  from './../config/env.js';
 
 import { checkUsersPendingOrders } from './orderCheck.js'
 
@@ -22,7 +21,9 @@ export default async (req, res, next) => {
         const token = authHeader.split(' ')[1];
         let  decodedToken;
         try {
-            decodedToken = Jwt.verify(token, `${envData.secretForToken}`)
+            const secretForToken = process.env.JWT_SECRET;
+
+            decodedToken = Jwt.verify(token, `${secretForToken}`)
         } catch (error) {
             error.statusCode = 500;
             error.message = "wrong authentication token";

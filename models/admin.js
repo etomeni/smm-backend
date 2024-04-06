@@ -1,138 +1,65 @@
-import {
-    socialaudience, 
-    godwin,
-    secretweb, 
-    socialmedia, 
-    mediasolution,
-    medialab,
-    buyFollowers,
-    getfollowers,
-    growfollowers,
+import { userModel } from "./../util/users.model.js";
+import { paymentTransactionModel } from "./../util/paymentTransactions.model.js";
+import { ticketMessagesModel } from "./../util/ticketMessages.model.js";
+import { orderModel } from "./../util/orders.model.js";
+import { ticketModel } from "./../util/tickets.model.js";
+import { apiProviderModel } from "./../util/apiProvider.model.js";
+import { paymentMethodModel } from "./../util/paymentMethod.model.js";
 
-    jetmedia,
-    mediahub,
-    surefollowers,
-    followershub,
-    gainfollowers,
-    promedia,
-    growmedia,
-    mediagrowth,
-    socialgrowth,
-
-    pool, 
-} from '../util/database.js';
-
-import config  from './../config/DBconnect.js';
 
 export class admin {
-    
     static dbConnect() {
-
-        switch (config.hostState.siteName) {
-            case "socialaudience.club":
-                return socialaudience.promise();
-
-                break;
-    
-            case "mediasolution.club":
-                return godwin.promise();
-
-                break;
-    
-            case "secretweb.vip":
-                // config.DBcreated.database = "tesafollowers";
-                return secretweb.promise();
-                break;
-    
-            case "socialmedia.24s.club":
-                return socialmedia.promise();
-                break;
-    
-            case "mediasolution.24s.club":
-                return mediasolution.promise();
-                break;
-    
-            case "medialab.24s.club":
-                return medialab.promise();
-
-                break;
-    
-            case "buyfollowers.24s.club":
-                return buyFollowers.promise();
-
-                break;
-    
-            case "getfollowers.24s.club":
-                return getfollowers.promise();
-
-                break;
-    
-            case "growfollowers.24s.club":
-                return growfollowers.promise();
-
-                break;
-            // ----------------------------------------
-            case "jetmedia.24s.club":
-                return jetmedia.promise();
-
-                break;
-            case "mediahub.24s.club":
-                return mediahub.promise();
-
-                break;
-            case "surefollowers.24s.club":
-                return surefollowers.promise();
-
-                break;
-            case "followershub.24s.club":
-                return followershub.promise();
-
-                break;
-            case "gainfollowers.24s.club":
-                return gainfollowers.promise();
-
-                break;
-            case "promedia.24s.club":
-                return promedia.promise();
-
-                break;
-            case "growmedia.24s.club":
-                return growmedia.promise();
-
-                break;
-            case "mediagrowth.24s.club":
-                return mediagrowth.promise();
-
-                break;
-            case "socialgrowth.24s.club":
-                return socialgrowth.promise();
-
-                break;
-            // ----------------------------------------
-        
-            default:
-
-                return pool.promise();
-                break;
-        }
+        return "";
     };
-
+    
     constructor() { }
 
-    static getApiBalance() {
-        const db = this.dbConnect();
+    static async getApiBalance() {
+        try {
+            const result = await apiProviderModel.find({ status: 1 }, 'balance');
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get services.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get services.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `SELECT API_Provider.balance AS apiBalance FROM API_Provider WHERE  API_Provider.status = 1;`,
-        )
+        // return db.execute(
+        //     `SELECT API_Provider.balance AS apiBalance FROM API_Provider WHERE  API_Provider.status = 1;`,
+        // )
     };
 
-    static getTotalOrders() {
-        const db = this.dbConnect();
+    static async getTotalOrders() {
+        try {
+            const result = await orderModel.countDocuments();
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to count total orders.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to count total orders.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `SELECT COUNT(orders.id) AS totalOrders FROM orders;`,
-        )
+        // return db.execute(
+        //     `SELECT COUNT(orders.id) AS totalOrders FROM orders;`,
+        // )
     };
 
     static getTotalProfit() {
@@ -189,134 +116,382 @@ export class admin {
         )
     };
 
-    static getDashboardOrders() {
-        const db = this.dbConnect();
+    static async getDashboardOrders() {
+        try {
+            const result = await orderModel
+                            .find({})
+                            .limit(10);
 
-        return db.execute(
-            `SELECT * FROM orders LIMIT 10;`,
-        )
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get ticket.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get ticket.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     `SELECT * FROM orders LIMIT 10;`,
+        // )
     };
 
-    static getAllActiveTicket() {
-        const db = this.dbConnect();
+    static async getAllActiveTicket() {
+        try {
+            const result = await ticketModel.find({ status: 1 });
 
-        return db.execute(
-            `SELECT * FROM tickets WHERE tickets.status = 1;`,
-        )
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get ticket.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get ticket.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     `SELECT * FROM tickets WHERE tickets.status = 1;`,
+        // )
     };
 
-    static getTicket(ticket) {
-        const db = this.dbConnect();
+    static async getTicket(ticket) {
+        try {
+            const result = await ticketModel.find({ ticketID: ticket.ticketID });
 
-        return db.execute(
-            'SELECT * FROM tickets WHERE ticketID = ?',
-            [ticket.ticketID]
-        );
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get ticket.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get ticket.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     'SELECT * FROM tickets WHERE ticketID = ?',
+        //     [ticket.ticketID]
+        // );
     };
 
-    static getTicketMessage(data) {
-        const db = this.dbConnect();
+    static async getTicketMessage(data) {
+        try {
+            const result = await ticketMessagesModel.find({ ticketID: data.ticketID });
 
-        return db.execute(
-            'SELECT * FROM ticket_messages WHERE ticketID = ?',
-            [data.ticketID]
-        );
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get ticket Messages.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get ticket Messages.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     'SELECT * FROM ticket_messages WHERE ticketID = ?',
+        //     [data.ticketID]
+        // );
     };
 
-    static closeTicket(ticketID) {
-        const db = this.dbConnect();
+    static async closeTicket(ticketID) {
+        try {
+            const result = await ticketModel.updateOne({ ticketID: ticketID }, { $set: { status:0 } });
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update tickets.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update tickets.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `UPDATE tickets SET status = 0 WHERE tickets.ticketID = ${ticketID};`
-        );
+        // return db.execute(
+        //     `UPDATE tickets SET status = 0 WHERE tickets.ticketID = ${ticketID};`
+        // );
     };
 
-    static getUserByID(userID) {
-        const db = this.dbConnect();
+    static async getUserByID(userID) {
+        try {
+            const result = await userModel.find({ userID: userID });
 
-        return db.execute(
-            'SELECT * FROM users WHERE userID = ?;',
-            [`${userID}`]
-        );
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get user.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get user.",
+                status: false,
+                error
+            }
+        }
+
+
+        // return db.execute(
+        //     'SELECT * FROM users WHERE userID = ?;',
+        //     [`${userID}`]
+        // );
     };
 
-    static deduct_upgradeUserBalance(user) {
-        const db = this.dbConnect();
+    static async deduct_upgradeUserBalance(user) {
+        try {
+            const result = await userModel.updateOne({ userID: user.userID }, { $set: { balance: user.balance } });
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update user balance.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update user balance.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'UPDATE users SET balance = ? WHERE users.userID = ?;',
-            // `UPDATE users SET balance = ${user.balance} WHERE users.userID = ${user.userID};`,
-            [user.balance, user.userID]
-        );
+        // return db.execute(
+        //     'UPDATE users SET balance = ? WHERE users.userID = ?;',
+        //     // `UPDATE users SET balance = ${user.balance} WHERE users.userID = ${user.userID};`,
+        //     [user.balance, user.userID]
+        // );
     };
 
-    static getAllUsers() {
-        const db = this.dbConnect();
+    static async getAllUsers() {
+        try {
+            const result = await userModel.find({});
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get all users.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get all users.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM users WHERE 1;',
-        );
+        // return db.execute(
+        //     'SELECT * FROM users WHERE 1;',
+        // );
     };
 
-    static getAllUserUsers() {
-        const db = this.dbConnect();
+    static async getAllUserUsers() {
+        try {
+            const result = await userModel.find({role: "admin" });
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get all users.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get all users.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `SELECT * FROM users WHERE role != 'admin';`,
-        );
+        // return db.execute(
+        //     `SELECT * FROM users WHERE role != 'admin';`,
+        // );
     };
 
-    static getAllOrders() {
-        const db = this.dbConnect();
+    static async getAllOrders() {
+        try {
+            const result = await orderModel.find({});
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get all orders.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get all orders.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM orders WHERE 1;',
-            // [user.userID]
-        );
+        // return db.execute(
+        //     'SELECT * FROM orders WHERE 1;',
+        //     // [user.userID]
+        // );
     };
 
-    static getAllPayments() {
-        const db = this.dbConnect();
+    static async getAllPayments() {
+        try {
+            const result = await paymentTransactionModel.find({});
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get payment transactions.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get payment transactions.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM payment_transactions WHERE 1;',
-            // [user.userID]
-        );
+        // return db.execute(
+        //     'SELECT * FROM payment_transactions WHERE 1;',
+        //     // [user.userID]
+        // );
     };
 
-    static getAllProviders() {
-        const db = this.dbConnect();
+    static async getAllProviders() {
+        try {
+            const result = await apiProviderModel.find({});
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get api providers.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get api providers.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM API_Provider;',
-            // [user.userID]
-        );
+        // return db.execute(
+        //     'SELECT * FROM API_Provider;',
+        //     // [user.userID]
+        // );
     };
 
-    static changeProviderStatus(data) {
-        const db = this.dbConnect();
+    static async changeProviderStatus(data) {
+        try {
+            const result = await apiProviderModel.updateOne({ id: data.id }, { $set: { status: data.status } });
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update api provider.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update api provider.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `UPDATE API_Provider SET status = '${data.status}' WHERE API_Provider.id = '${data.id}';`
-            // [data.status]
-        );
+        // return db.execute(
+        //     `UPDATE API_Provider SET status = '${data.status}' WHERE API_Provider.id = '${data.id}';`
+        //     // [data.status]
+        // );
     };
 
-    static deleteApiProvider(data) {
-        const db = this.dbConnect();
+    static async deleteApiProvider(data) {
+        try {
+            const result = await apiProviderModel.deleteOne({ _id: data });
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get services.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get services.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `DELETE FROM API_Provider WHERE API_Provider.id = '${data}';`
-        );
+        // return db.execute(
+        //     `DELETE FROM API_Provider WHERE API_Provider.id = '${data}';`
+        // );
     };
 
-    static getQueriedProvider(data) {
-        const db = this.dbConnect();
+    static async getQueriedProvider(data) {
+        try {
+            const result = await apiProviderModel.find({APIproviderID: data });
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get all users.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get all users.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM API_Provider WHERE APIproviderID = ?;',
-            [data]
-        );
+        // return db.execute(
+        //     'SELECT * FROM API_Provider WHERE APIproviderID = ?;',
+        //     [data]
+        // );
     };
 
     // Add New Provider API to the Database
@@ -351,31 +526,79 @@ export class admin {
         )
     };
 
-    static updateUserRole(user) {
-        const db = this.dbConnect();
+    static async updateUserRole(user) {
+        try {
+            const result = await userModel.updateOne({ userID: user.userID }, { $set: { role: user.role } });
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update services.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update services.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'UPDATE users SET role = ? WHERE users.userID = ?;',
-            [user.role, user.userID]
-        );
+        // return db.execute(
+        //     'UPDATE users SET role = ? WHERE users.userID = ?;',
+        //     [user.role, user.userID]
+        // );
     };
 
-    static getAllPaymentMethods() {
-        const db = this.dbConnect();
+    static async getAllPaymentMethods() {
+        try {
+            const result = await paymentMethodModel.find({});
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get all users.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get all users.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM payment_method;',
-            // [user.userID]
-        );
+        // return db.execute(
+        //     'SELECT * FROM payment_method;',
+        //     // [user.userID]
+        // );
     };
 
-    static getQueriedPaymentMethod(data) {
-        const db = this.dbConnect();
+    static async getQueriedPaymentMethod(data) {
+        try {
+            const result = await paymentMethodModel.find({paymentMethodID: data});
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get all users.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get all users.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM payment_method WHERE paymentMethodID = ?;',
-            [data]
-        );
+        // return db.execute(
+        //     'SELECT * FROM payment_method WHERE paymentMethodID = ?;',
+        //     [data]
+        // );
     };
 
 

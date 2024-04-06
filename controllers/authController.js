@@ -5,12 +5,10 @@ import Jwt from "jsonwebtoken";
 // import axios from "axios";
 import nodemailer from 'nodemailer';
 
-// config
-import envData  from './../config/env.js';
-
 // models
 import { auth } from '../models/users.js';
 
+const secretForToken = process.env.JWT_SECRET;
 
 export const signupController = async (req, res, next) => {
     try {
@@ -58,7 +56,7 @@ export const signupController = async (req, res, next) => {
                 email: userDetails.email,
                 userID: userDetails.userID
             },
-            `${envData.secretForToken}`,
+            `${secretForToken}`,
             { expiresIn: '24h' }
         );
 
@@ -119,7 +117,7 @@ export const loginController = async (req, res, next) => {
                 email: storedUser.email,
                 userID: storedUser.userID
             },
-            `${envData.secretForToken}`,
+            `${secretForToken}`,
             { expiresIn: '24h' }
         );
 

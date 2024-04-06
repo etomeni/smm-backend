@@ -1,317 +1,134 @@
-import {
-    socialaudience, 
-    godwin,
-    secretweb, 
-    socialmedia, 
-    mediasolution,
-    medialab,
-    buyFollowers,
-    getfollowers,
-    growfollowers,
+import { userModel } from "./../util/users.model.js";
+import { paymentTransactionModel } from "./../util/paymentTransactions.model.js";
+import { ticketMessagesModel } from "./../util/ticketMessages.model.js";
+import { orderModel } from "./../util/orders.model.js"
+import { ticketModel } from "./../util/tickets.model.js"
 
-    jetmedia,
-    mediahub,
-    surefollowers,
-    followershub,
-    gainfollowers,
-    promedia,
-    growmedia,
-    mediagrowth,
-    socialgrowth,
-
-    pool, 
-} from '../util/database.js';
-
-import config  from './../config/DBconnect.js';
 
 export class auth {
+    static async findEmail(email) {
+        const userExists = await userModel.findOne({ email });
 
-    static dbConnect() {
-
-        switch (config.hostState.siteName) {
-            case "socialaudience.club":
-                return socialaudience.promise();
-
-                break;
-
-            case "mediasolution.club":
-                return godwin.promise();
-
-                break;
-    
-            case "secretweb.vip":
-                // config.DBcreated.database = "tesafollowers";
-                return secretweb.promise();
-                break;
-    
-            case "socialmedia.24s.club":
-                return socialmedia.promise();
-                break;
-    
-            case "mediasolution.24s.club":
-                return mediasolution.promise();
-                break;
-    
-            case "medialab.24s.club":
-                return medialab.promise();
-
-                break;
-    
-            case "buyfollowers.24s.club":
-                return buyFollowers.promise();
-
-                break;
-    
-            case "getfollowers.24s.club":
-                return getfollowers.promise();
-
-                break;
-    
-            case "growfollowers.24s.club":
-                return growfollowers.promise();
-
-                break;
-
-            // -----------------------------------------------
-
-            case "jetmedia.24s.club":
-                return jetmedia.promise();
-
-                break;
-            case "mediahub.24s.club":
-                return mediahub.promise();
-
-                break;
-            case "surefollowers.24s.club":
-                return surefollowers.promise();
-
-                break;
-            case "followershub.24s.club":
-                return followershub.promise();
-
-                break;
-            case "gainfollowers.24s.club":
-                return gainfollowers.promise();
-
-                break;
-            case "promedia.24s.club":
-                return promedia.promise();
-
-                break;
-            case "growmedia.24s.club":
-                return growmedia.promise();
-
-                break;
-            case "mediagrowth.24s.club":
-                return mediagrowth.promise();
-
-                break;
-            case "socialgrowth.24s.club":
-                return socialgrowth.promise();
-
-                break;
-            // ---------------------------------------------------
-        
-            default:
-
-                return pool.promise();
-                break;
-        }
-    };
-
-    constructor() {}
-
-    static findEmail(email) {
-        const db = this.dbConnect();
-
-        return db.execute(
-            'SELECT * FROM users WHERE email = ?',
-            [email]
-        );
-    };
-
-    static findUsername(username) {
-        const db = this.dbConnect();
-
-        return db.execute(
-            'SELECT * FROM users WHERE username = ?',
-            [username]
-        );
-    };
-
-    static find(usernameEmail) {
-        const db = this.dbConnect();
-
-        return db.execute(
-            'SELECT * FROM users WHERE username = ? OR email = ?',
-            [usernameEmail, usernameEmail]
-        );
-    };
-
-    static findByID(userID) {
-        const db = this.dbConnect();
-
-        return db.execute(
-            'SELECT * FROM users WHERE userID = ?',
-            [`${userID}`]
-        );
-    };
-
-    static findByApiKey(apiKey) {
-        const db = this.dbConnect();
-
-        return db.execute(
-            'SELECT * FROM users WHERE apiKey = ?',
-            [`${apiKey}`]
-        );
-    };
-
-
-    static save(user) {
-        const db = this.dbConnect();
-
-        return db.execute(
-            'INSERT INTO users (userID, name, username, email, phoneNumber, apiKey, ipHistory, country, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [ user.userID, user.name, user.username, user.email, user.phoneNumber, user.apiKey, user.ipHistory, user.country, user.password ]
-        );
-    };
-
-    static updateUser(user, condition="AND") {
-        const db = this.dbConnect();
-
-        let sqlText = this.multipleUpdate(user, "users", condition);
-
-        return db.execute(
-            sqlText,
-            user.NewColombNameValue
-        );
-    };
-
-
-
-
-
-    static multipleUpdate(data, tableName, condition) {
-        const db = this.dbConnect();
-
-        let sqlText = `UPDATE ${tableName} SET `
-
-        for (let i = 0; i < data.colombName.length; i++) {
-            const element = data.colombName[i];
-
-            if (i === 0) {
-                sqlText += `${element} = ?`;
-            } else {
-                sqlText += `, ${element} = ?`;
+        if (userExists) {
+            return userExists;
+        } else {
+            return {
+                message: "No user with such email.",
+                status: false
             }
         }
 
-        for (let i = 0; i < data.conditionColombName.length; i++) {
-            const conditionName = data.conditionColombName[i];
-            const elconditionValue = data.conditionColombValue[i];
+    };
 
-            if (i === 0) {
-                sqlText += ` WHERE ${tableName}.${conditionName} = '${elconditionValue}'`;
-            } else {
-                sqlText += ` ${condition} ${tableName}.${conditionName} =' ${elconditionValue}'`;
+    static async findUsername(username) {
+        const userExists = await userModel.findOne({ username });
+
+        if (userExists) {
+            return userExists;
+        } else {
+            return {
+                message: "No user with such username.",
+                status: false
             }
         }
+    };
 
-        return sqlText;
-    }
+    static async find(usernameEmail) {
+        const userExists = await UserModel.findOne({
+            $or: [
+              { email: usernameEmail },
+              { username: usernameEmail }
+            ]
+        });
+
+        if (userExists) {
+            return userExists;
+        } else {
+            return {
+                message: "No user with such username or email.",
+                status: false
+            }
+        }
+    };
+
+    static async findByID(userID) {
+        const userExists = await userModel.findOne({ userID });
+
+        if (userExists) {
+            return userExists;
+        } else {
+            return {
+                message: "No user with such user id.",
+                status: false
+            }
+        }
+    };
+
+    static async findByApiKey(apiKey) {
+        const userExists = await userModel.findOne({ apiKey });
+
+        if (userExists) {
+            return userExists;
+        } else {
+            return {
+                message: "No user with such api key exist.",
+                status: false
+            }
+        }
+    };
+
+
+    static async save(user) {
+        const newUser = new userModel({
+            userID: user.userID, 
+            name: user.name, 
+            username: user.username,
+            email: user.email, 
+            phoneNumber: user.phoneNumber,
+            apiKey: user.apiKey,
+            ipHistory: user.ipHistory,
+            country: user.country,
+            password: user.password
+        });
+
+        const result = await newUser.save();
+        if (result) {
+            return result;
+        } else {
+            return {
+                message: "Error creating new user.",
+                status: false
+            }
+        }
+    };
+
+    static async updateUser(user, condition="AND") {
+
+        const updatedUser = await UserModel.findOneAndUpdate(
+            { userID: user.id }, 
+            user,
+            {
+                runValidators: true,
+                returnOriginal: false,
+            }
+        );
+
+        if (updatedUser) {
+            return updatedUser;
+        } else {
+            return {
+                message: "unable to update user data",
+                status: false
+            }
+        }
+    };
+
 }
 
 export class user {
-    
-    static dbConnect() {
-        switch (config.hostState.siteName) {
-            case "socialaudience.club":
-                return socialaudience.promise();
-
-                break;
-    
-            case "secretweb.vip":
-                // config.DBcreated.database = "tesafollowers";
-                return secretweb.promise();
-                break;
-    
-            case "socialmedia.24s.club":
-                return socialmedia.promise();
-                break;
-    
-            case "mediasolution.24s.club":
-                return mediasolution.promise();
-                break;
-    
-            case "medialab.24s.club":
-                return medialab.promise();
-
-                break;
-    
-            case "buyfollowers.24s.club":
-                return buyFollowers.promise();
-
-                break;
-    
-            case "getfollowers.24s.club":
-                return getfollowers.promise();
-
-                break;
-    
-            case "growfollowers.24s.club":
-                return growfollowers.promise();
-
-                break;
-
-            // -------------------------------------------
-            case "jetmedia.24s.club":
-                return jetmedia.promise();
-
-                break;
-            case "mediahub.24s.club":
-                return mediahub.promise();
-
-                break;
-            case "surefollowers.24s.club":
-                return surefollowers.promise();
-
-                break;
-            case "followershub.24s.club":
-                return followershub.promise();
-
-                break;
-            case "gainfollowers.24s.club":
-                return gainfollowers.promise();
-
-                break;
-            case "promedia.24s.club":
-                return promedia.promise();
-
-                break;
-            case "growmedia.24s.club":
-                return growmedia.promise();
-
-                break;
-            case "mediagrowth.24s.club":
-                return mediagrowth.promise();
-
-                break;
-            case "socialgrowth.24s.club":
-                return socialgrowth.promise();
-
-                break;
-            // -------------------------------------------------
-        
-            default:
-
-                return pool.promise();
-                break;
-        }
-    };
-
-    constructor() {}
 
     static orderBalDeduction(data, condition="AND") {
+
         const db = this.dbConnect();
 
         let sqlText = this.multipleUpdate(data, "users", condition);
@@ -322,93 +139,275 @@ export class user {
         );
     };
 
-    static getCurrentUser(user) {
-        const db = this.dbConnect();
+    static async getCurrentUser(user) {
+        try {
+            const exisitingUser = await userModel.findOne({ userID: user.userID });
+            if (exisitingUser) {
+                return exisitingUser;
+            } else {
+                return {
+                    message: "Error creating new transaction.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error creating new transaction.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM users WHERE userID = ?',
-            [user.userID]
-        );
+
+        // return db.execute(
+        //     'SELECT * FROM users WHERE userID = ?',
+        //     [user.userID]
+        // );
     };
 
-    static getUserOrders(user) {
-        const db = this.dbConnect();
+    static async getUserOrders(user) {
+        try {
+            const allUserOrders = await orderModel.find({ userID: user.userID });
+            if (allUserOrders) {
+                return allUserOrders;
+            } else {
+                return {
+                    message: "unable to get orders",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to get orders",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM orders WHERE userID = ?',
-            [user.userID]
-        );
+        // return db.execute(
+        //     'SELECT * FROM orders WHERE userID = ?',
+        //     [user.userID]
+        // );
     };
 
-    static getOrderById(order) {
-        const db = this.dbConnect();
+    static async getOrderById(id) {
+        try {
+            const order = await orderModel.findById(id);
+            if (order) {
+                return order;
+            } else {
+                return {
+                    status: false,
+                    message: `Order with ID "${id}" not found.`,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to get orders",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM orders WHERE id = ?',
-            [`${order}`]
-        );
+        // return db.execute(
+        //     'SELECT * FROM orders WHERE id = ?',
+        //     [`${order}`]
+        // );
     };
 
-    static getOrderByOrderID(orderID) {
-        const db = this.dbConnect();
+    static async getOrderByOrderID(orderID) {
+        try {
+            const order = await orderModel.findOne({ orderID: orderID });
 
-        return db.execute(
-            'SELECT * FROM orders WHERE orderID = ?',
-            [`${orderID}`]
-        );
+            if (order) {
+                return order;
+            } else {
+                return {
+                    status: false,
+                    message: `Order with ID "${orderID}" not found.`,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to get orders",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     'SELECT * FROM orders WHERE orderID = ?',
+        //     [`${orderID}`]
+        // );
     };
 
-    static getUserTickets(user) {
-        const db = this.dbConnect();
+    static async getUserTickets(user) {
+        try {
+            const tickets = await ticketModel.find({ userID: user.userID });
 
-        return db.execute(
-            'SELECT * FROM tickets WHERE userID = ?',
-            [user.userID]
-        );
+            if (tickets) {
+                return tickets;
+            } else {
+                return {
+                    status: false,
+                    message: `unable to get tickets.`,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to get tickets",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     'SELECT * FROM tickets WHERE userID = ?',
+        //     [user.userID]
+        // );
     };
 
-    static getTicket(ticket) {
-        const db = this.dbConnect();
+    static async getTicket(ticket) {
+        try {
+            const ticketData = await ticketModel.findOne({ ticketID: ticket.ticketID });
 
-        return db.execute(
-            'SELECT * FROM tickets WHERE ticketID = ?',
-            [ticket.ticketID]
-        );
+            if (ticketData) {
+                return ticketData;
+            } else {
+                return {
+                    status: false,
+                    message: `unable to get tickets.`,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to get tickets",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     'SELECT * FROM tickets WHERE ticketID = ?',
+        //     [ticket.ticketID]
+        // );
     };
 
-    static getUserTicketMessage(data) {
-        const db = this.dbConnect();
+    static async getUserTicketMessage(data) {
+        try {
+            const ticketMessages = await ticketMessagesModel.find({ ticketID: data.ticketID });
 
-        return db.execute(
-            'SELECT * FROM ticket_messages WHERE ticketID = ?',
-            [data.ticketID]
-        );
+            if (ticketMessages) {
+                return ticketMessages;
+            } else {
+                return {
+                    status: false,
+                    message: `unable to get tickets.`,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to get tickets",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     'SELECT * FROM ticket_messages WHERE ticketID = ?',
+        //     [data.ticketID]
+        // );
     };
 
-    static getUserPayments(user) {
-        const db = this.dbConnect();
+    static async getUserPayments(user) {
+        try {
+            const transactions = await paymentTransactionModel.find({ userID: user.userID });
+            if (transactions) {
+                return transactions;
+            } else {
+                return {
+                    message: "unable to get user transaction data.",
+                    status: false
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to get user transaction data.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'SELECT * FROM payment_transactions WHERE userID = ?',
-            [user.userID]
-        );
+
+        // return db.execute(
+        //     'SELECT * FROM payment_transactions WHERE userID = ?',
+        //     [user.userID]
+        // );
     };
 
-    static addFunds(funds) {
-        const db = this.dbConnect();
+    static async addFunds(funds) {
+        try {
+            const paymentTransaction = new paymentTransactionModel({
+                transactionID: funds.transactionID,
+                userID: funds.userID,
+                currency: funds.currency,
+                paymentMethod: funds.paymentMethod,
+                extraData: funds.extraData,
+                amount: funds.amount,
+                status: funds.status
+            });
+    
+            const result = await paymentTransaction.save();
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Error creating new transaction.",
+                    status: false
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error creating new transaction.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            'INSERT INTO payment_transactions (transactionID, userID, currency, paymentMethod, extraData, amount, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [ funds.transactionID, funds.userID, funds.currency, funds.paymentMethod, funds.extraData, funds.amount, funds.status, ]
-        );
+
+        // return db.execute(
+        //     'INSERT INTO payment_transactions (
+        //         transactionID, userID, currency, paymentMethod, extraData, amount, status
+        //         ) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        //     [ funds.transactionID, funds.userID, funds.currency, funds.paymentMethod, funds.extraData, funds.amount, funds.status, ]
+        // );
     };
 
-    static getAdminUsers() {
-        const db = this.dbConnect();
+    static async getAdminUsers() {
+        try {
+            // Assuming you have a User model with a 'role' field
+            const adminUserEmail = userModel.find({ role: { $ne: 'user' } }, 'email');
+            
+            if (adminUserEmail) {
+                return adminUserEmail;
+            } else {
+                return {
+                    message: "unable to get admin user emails",
+                    status: false
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to get admin user emails",
+                status: false,
+                error
+            }
+        }
+        
 
-        return db.execute(
-            `SELECT email FROM users WHERE role != 'user'`,
-        );
+        // return db.execute(
+        //     `SELECT email FROM users WHERE role != 'user'`,
+        // );
     };
 
 

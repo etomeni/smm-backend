@@ -28,9 +28,9 @@ export class services {
         // );
     };
 
-    static async getServiceByID(serviceID) {
+    static async getServiceByID(serviceId) {
         try {
-            const servicesResult = await serviceModel.find({serviceID: serviceID });
+            const servicesResult = await serviceModel.find({serviceID: serviceId });
             if (servicesResult) {
                 return servicesResult;
             } else {
@@ -205,43 +205,32 @@ export class services {
 
 
 
-    static updateMultipleServices(services) {
-        const db = this.dbConnect();
+    static async updateMultipleServices(criteria, newService) {
+        try {
+            const result = await serviceModel.updateMany(criteria, newService);
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update services.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update services.",
+                status: false,
+                error
+            }
+        }
 
-        let sqlText = this.multipleUpdate(services, 'OR', 'services');
 
-        return db.execute(
-            `${sqlText}`,
-            services.NewColombNameValue
-        )
+        // let sqlText = this.multipleUpdate(services, 'OR', 'services');
+
+        // return db.execute(
+        //     `${sqlText}`,
+        //     services.NewColombNameValue
+        // )
     };
-
-    static multipleUpdate(data, condition, tableName) {
-        const db = this.dbConnect();
-
-        let sqlText = `UPDATE ${tableName} SET `
-
-        for (let i = 0; i < data.colombName.length; i++) {
-            const element = data.colombName[i];
-
-            if (i === 0) {
-                sqlText += `${element} = ?`;
-            } else {
-                sqlText += `, ${element} = ?`;
-            }
-        }
-
-        for (let i = 0; i < data.conditionColombName.length; i++) {
-            const conditionName = data.conditionColombName[i];
-            const elconditionValue = data.conditionColombValue[i];
-
-            if (i === 0) {
-                sqlText += ` WHERE ${tableName}.${conditionName} = '${elconditionValue}'`;
-            } else {
-                sqlText += ` ${condition} ${tableName}.${conditionName} =' ${elconditionValue}'`;
-            }
-        }
-
-        return sqlText;
-    }
+    
 }

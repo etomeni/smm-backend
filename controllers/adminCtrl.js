@@ -593,7 +593,13 @@ export const getProviderServicesCtr = async (req, res, next) => {
 
     try {
         let apiProvider = await general.getActiveApiProvider({tbName: "status" , tbValue: 1});
-        apiProvider = apiProvider[0][0];
+        if (apiProvider && apiProvider.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...apiProvider
+            });
+        }
+        apiProvider = apiProvider[0];
 
         const providerServices = await axios.post(`${apiProvider.url}?key=${apiProvider.apiKey}&action=services`);
 
@@ -643,6 +649,12 @@ export const addNewServiceCtr = async (req, res, next) => {
             description: req.body.description
         };
         const result = await services.addService(serviceDetails);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: result.message || 'New Service was added successfully!'
+            });   
+        }
 
         return res.status(201).json({
             status: 201,
@@ -662,10 +674,16 @@ export const getAllProvidersCtr = async (req, res, next) => {
 
     try {
         const apiProvider = await admin.getAllProviders();
+        if (apiProvider && apiProvider.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...apiProvider
+            }); 
+        }
 
         return res.status(201).json({
             status: 201,
-            providers: apiProvider[0],
+            providers: apiProvider,
             message: `successful!`
         });
     } catch (error) {
@@ -992,6 +1010,12 @@ export const addPaymentMethodCtr = async (req, res, next) => {
         };
 
         const result = await admin.addNewPaymentMethod(paymentMethodDetails);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result,
+            });
+        }
 
         return res.status(201).json({
             status: 201,

@@ -38,10 +38,10 @@ import authMiddleware from './../../middleware/auth.js'
 
 router.use(bodyParser.json());
 
-// get all services from the provider
-router.post(
+// testing users endpoints
+router.get(
     '/',
-    (req, res) => {
+    (req, res) => {        
         return res.status(200).json({
             message: "api is working!",
             statusCode: 200,
@@ -95,45 +95,18 @@ router.post(
 );
 
 // get all services for on site users
-router.post(
-    '/getServices',
-    async (req, res, next) => {
-        try {
-            const dbServices = await services.getAllServices();
-    
-            if (!(dbServices[0].length)) {
-                return res.status(500).json({
-                    message: "an error occured!!!",
-                    statusCode: 500,
-                    dbServices,
-                });
-            }
-    
-            return res.send(dbServices[0]);
-        } catch (error) {
-            if (!error.statusCode) {
-                error.statusCode = 500;
-            }
-            next(error);
-        }
-    }
-);
-
-// get all services for on site users
 router.get(
     '/getServices',
     async (req, res, next) => {
         try {
             const dbServices = await services.getAllServices();
-    
-            if (!(dbServices[0].length)) {
+            if (dbServices && dbServices.status == false) {
                 return res.status(500).json({
-                    message: "an error occured!!!",
-                    statusCode: 500,
-                    dbServices,
+                    message: dbServices.message || "an error occured!!!",
+                    ...dbServices,
                 });
             }
-            return res.send(dbServices[0]);
+            return res.send(dbServices);
         } catch (error) {
             if (!error.statusCode) {
                 error.statusCode = 500;

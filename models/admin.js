@@ -496,6 +496,9 @@ export class admin {
 
     // Add New Provider API to the Database
     static addNewApiProvider(data) {
+
+
+
         const db = this.dbConnect();
 
         return db.execute(
@@ -515,15 +518,24 @@ export class admin {
     };
 
     // Update Multiple API Provider colomb
-    static updateApiProvider(data, condition) {
-        const db = this.dbConnect();
-
-        let sqlText = this.multipleUpdate(data, "API_Provider" || data.tableName, condition);
-
-        return db.execute(
-            sqlText,
-            data.NewColombNameValue
-        )
+    static async updateApiProvider(condition, data) {
+        try {
+            const result = await apiProviderModel.updateMany(condition, data);
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update services.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update services.",
+                status: false,
+                error
+            }
+        }
     };
 
     static async updateUserRole(user) {
@@ -603,8 +615,36 @@ export class admin {
 
 
     // Add New Payment Method to the Database
-    static addNewPaymentMethod(data) {
-        const db = this.dbConnect();
+    static async addNewPaymentMethod(data) {
+        try {
+            const paymentTransaction = new paymentMethodModel({
+                paymentMethodID: data.paymentMethodID, 
+                name: data.name, 
+                currency: data.currency, 
+                minAmount: data.minAmount, 
+                maxAmount: data.maxAmount, 
+                exchangeRate: data.exchangeRate, 
+                data: data.data, 
+                status: data.status
+            });
+    
+            const result = await paymentTransaction.save();
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Error creating new transaction.",
+                    status: false
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error adding funds to account.",
+                status: false,
+                error
+            }
+        }
+
 
         return db.execute(
             'INSERT INTO payment_method (paymentMethodID, name, currency, minAmount, maxAmount, exchangeRate, data, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',

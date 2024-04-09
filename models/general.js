@@ -18,7 +18,7 @@ export class general {
     // get Active Api Provider
     static async getActiveApiProvider(data) {
         try {
-            const result = await apiProviderModel.find({ [data.tbName]: data.tbValue });
+            const result = await apiProviderModel.find({ status: 1 });
 
             if (result) {
                 return result;
@@ -183,7 +183,7 @@ export class general {
                 quantity: order.quantity,
                 amount: order.amount,
                 costAmount: order.costAmount,
-                apiCharge: null,
+                apiCharge: order.apiCharge,
                 profit: order.profit,
                 note: order.note,
                 status: order.status
@@ -213,15 +213,39 @@ export class general {
     };
 
     // update order records to the DB
-    static updateOrder(data, condition="AND") {
-        const db = this.dbConnect();
+    static async updateOrder(orderId, newOrderData) {
+        try {
+            const updatedOrder = await orderModel.findOneAndUpdate(
+                { orderID: orderId },
+                newOrderData,
+                {
+                    runValidators: true,
+                    returnOriginal: false,
+                }
+            );
+    
+            if (updatedOrder) {
+                return updatedOrder;
+            } else {
+                return {
+                    message: "unable to update user data",
+                    status: false
+                }
+            }
+        } catch (error) {
+            return {
+                message: "unable to update user data",
+                status: false,
+                error
+            }
+        }
 
-        let sqlText = this.multipleUpdate(data, "orders", condition);
 
-        return db.execute(
-            sqlText,
-            data.NewColombNameValue
-        )
+        // let sqlText = this.multipleUpdate(data, "orders", condition);
+        // return db.execute(
+        //     sqlText,
+        //     data.NewColombNameValue
+        // )
     };
 
     // create New Ticket
@@ -240,13 +264,13 @@ export class general {
                 return result;
             } else {
                 return {
-                    message: "Error adding new service.",
+                    message: "Error creating new ticket.",
                     status: false
                 }
             }
         } catch (error) {
             return {
-                message: "Error adding new service.",
+                message: "Error creating new ticket.",
                 status: false,
                 error
             }
@@ -426,13 +450,39 @@ export class general {
     };
 
     // get user orders by status (pending/processing )
-    static getUserOrderByStatus(data) {
-        const db = this.dbConnect();
+    static async getUserOrderByStatus(data) {
+        try {
+            const query = {
+                userID: data.userID,
+                $or: [
+                    { status: data.status1 },
+                    { status: data.status2 }
+                ]
+            };
+    
+            const result = await orderModel.find(query);
+            
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to get api provider.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to get api provider.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `SELECT * FROM orders WHERE userID = ? AND (status = ? OR status = ?)`,
-            [`${data.userID}`, `${data.status1}`, `${data.status2}`]
-        );
+
+        // return db.execute(
+        //     `SELECT * FROM orders WHERE userID = ? AND (status = ? OR status = ?)`,
+        //     [`${data.userID}`, `${data.status1}`, `${data.status2}`]
+        // );
     };
 
     // get all orders by status (pending/processing)
@@ -461,8 +511,6 @@ export class general {
         //     [`${status}`]
         // );
     };
-
-
 
     static multipleUpdate(data, tableName, condition) {
         const db = this.dbConnect();

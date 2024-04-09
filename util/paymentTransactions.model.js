@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import validator from 'validator';
 
 const paymentTransactionSchema = mongoose.Schema(
     {
@@ -20,7 +21,7 @@ const paymentTransactionSchema = mongoose.Schema(
             required: [true, "Payment method used is required."],
         },
         extraData: {
-            type: String,
+            type: Object,
         },
         amount: {
             type: Number,

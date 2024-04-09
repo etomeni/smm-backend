@@ -11,62 +11,83 @@ import { admin } from '../models/admin.js';
 
 export const placeOrderCtr = async (req, res, next) => {
     try {
-        try {
-            const errors = validationResult(req);
-    
-            if (!errors.isEmpty()) {
-                return res.status(500).json({
-                    status: 500,
-                    message: 'Sent Data Error!', 
-                    errors
-                });
-            };
-        } catch (error) {
-            if (!error.statusCode) {
-                error.statusCode = 500;
-            }
-            error.msg = "sent data validation error";
-            next(error);
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            return res.status(500).json({
+                status: 500,
+                message: 'Sent Data Error!', 
+                errors
+            });
+        };
+    } catch (error) {
+        if (!error.statusCode) {
+            error.statusCode = 500;
         }
-    
+        error.msg = "sent data validation error";
+        next(error);
+    }
+
+    try {
         let status;
         let note = [];
 
         // get the user current data to check bal
-        let Cuser = await user.getCurrentUser({userID: req.body.userID});
-        let CuserDetails;
-        if (Cuser[0].length !== 1) {
-            return res.status(401).json({
-                status: 401,
-                error: Cuser,
-                message: `unable to get user data`
+        const Cuser = await user.getCurrentUser({userID: req.body.userID});
+        if (Cuser && Cuser.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: Cuser.message || "unable to get user data"
             });
-        } else {
-            CuserDetails = Cuser[0][0];
-    
-            if (CuserDetails.balance < req.body.amount) {
-                return res.status(207).json({
-                    status: 207,
-                    message: "Insufficient Funds! add funds to your account and try again."
-                });
-            }
         }
+        
+        if (Cuser.balance < req.body.amount) {
+            return res.status(207).json({
+                status: 207,
+                message: "Insufficient Funds! add funds to your account and try again."
+            });
+        }
+
+        // let CuserDetails;
+        // if (Cuser[0].length !== 1) {
+        //     return res.status(401).json({
+        //         status: 401,
+        //         error: Cuser,
+        //         message: `unable to get user data`
+        //     });
+        // } else {
+        //     CuserDetails = Cuser[0][0];
     
-        // get the service and check for errors
+        //     if (CuserDetails.balance < req.body.amount) {
+        //         return res.status(207).json({
+        //             status: 207,
+        //             message: "Insufficient Funds! add funds to your account and try again."
+        //         });
+        //     }
+        // }
+    
         let servicexx;
+        // get the service and check for errors
         try {
             // get the service details
-            let service =  await services.getServiceByID(req.body.serviceID);
-            service = service[0];
-            // checks if the serviceID is valid
+            const service =  await services.getServiceByID(req.body.serviceID);
+            if (service && service.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    message: service.message || "unable to get user data"
+                });
+            }
+
+            // checks if the serviceID is valid multiple
             if (service.length > 1) {
                 const error = {
-                    message: "an error occured!"
+                    message: "duplicate service id!"
                 };
     
                 return res.status(500).json({
                     status: 500,
-                    error
+                    error,
+                    message:"duplicate service id"
                 });
             }
     
@@ -81,8 +102,7 @@ export const placeOrderCtr = async (req, res, next) => {
                     error,
                 });
             }
-            service = service[0];
-            servicexx = service;
+            servicexx = service[0];
             
             // check minimum order
             if (service.minOrder > req.body.quantity) {
@@ -92,6 +112,7 @@ export const placeOrderCtr = async (req, res, next) => {
         
                 return res.status(401).json({
                     status: 401,
+                    message: `minimum order must be greater than ${service.minOrder}`,
                     error
                 });
             }
@@ -104,6 +125,7 @@ export const placeOrderCtr = async (req, res, next) => {
         
                 return res.status(401).json({
                     status: 401,
+                    message: `maximum order is ${service.minOrder}`,
                     error
                 });
             }
@@ -117,9 +139,16 @@ export const placeOrderCtr = async (req, res, next) => {
         }
     
         let apiProvider  = await general.getActiveApiProvider({tbName: "status" , tbValue: 1});
-        let apiProviderDetails;
-        if (apiProvider[0]) {
-            apiProviderDetails = apiProvider[0][0];
+        if (apiProvider && apiProvider.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: apiProvider.message,
+                ...apiProvider
+            });
+        }
+
+        if (apiProvider.length) {
+            apiProviderDetails = apiProvider[0];
         }
     
         // check api provider price
@@ -134,21 +163,26 @@ export const placeOrderCtr = async (req, res, next) => {
     
                     let price = service.rate + (service.rate * 30/100);
                     const newPrice = Math.round((price + Number.EPSILON) * 100) / 100;
-    
-                    const updateDetails = {
-                        colombName: ["resellRate", "providerRate"],
-                        NewColombNameValue: [newPrice, service.rate],
-                
-                        conditionColombName: ["serviceID"],
-                        conditionColombValue: [req.body.serviceID]
+
+                    const criteria = { serviceID: req.body.serviceID };
+                    const newService = { 
+                        resellRate: newPrice,
+                        providerRate: service.rate,
                     };
                     
-                    await services.updateMultipleServices(updateDetails);
-    
+                    const updateService = await services.updateMultipleServices(criteria, newService);
+                    if (updateService && updateService.status == false) {
+                        return res.status(500).json({
+                            status: 500,
+                            message: updateService.message,
+                            ...updateService
+                        });
+                    }
+
                     return res.status(500).json({
                         status: 500,
                         message: "pricing error, please refresh and try again!",
-                        error
+                        // error
                     });
                 }
             }
@@ -166,18 +200,18 @@ export const placeOrderCtr = async (req, res, next) => {
         try {
             const apiProviderBalRes = await axios.post(`${apiProviderDetails.url}?key=${apiProviderDetails.apiKey}&action=balance`);
             // console.log(apiProviderBalRes.data);
-    
-            let data = {
-                colombName: ["balance", "currency"],
-                NewColombNameValue: [`${apiProviderBalRes.data.balance}`, `${apiProviderBalRes.data.currency}`],
-    
-                conditionColombName: ["APIproviderID", "id"],
-                conditionColombValue: [`${apiProviderDetails.APIproviderID}`, `${apiProviderDetails.id}`]
-            }
+
+            const newProviderData = {
+                balance: apiProviderBalRes.data.balance,
+                currency: apiProviderBalRes.data.currency
+            };
+            const condition = { APIproviderID: apiProviderDetails.APIproviderID };
+
             // UPDATE the database
             apiProviderDetails.balance = apiProviderBalRes.data.balance;
             apiProviderDetails.currency = apiProviderBalRes.data.currency;
-            await admin.updateApiProvider(data, "OR");
+            const result_ = await admin.updateApiProvider(condition, newProviderData);
+
         } catch (error) {
             err = error;
     
@@ -200,7 +234,18 @@ export const placeOrderCtr = async (req, res, next) => {
                 conditionColombName: ["userID", "id"],
                 conditionColombValue: [req.body.userID, CuserDetails.id]
             };
-            await user.orderBalDeduction(data, "OR");
+
+            const condition = { userID: req.body.userID };
+            const newData = { balance: Cuser.balance - req.body.amount };
+
+            const result_ = await user.orderBalDeduction(condition, newData);
+            if (result_ && result_.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    message: "unable to deduct funds from the user account",
+                    ...result_
+                });
+            }
         } catch (error) {
             return res.status(500).json({
                 status: 500,
@@ -239,17 +284,23 @@ export const placeOrderCtr = async (req, res, next) => {
             };
     
             result = await general.placeOrder(ordersDetails);
+            if (result && result.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...result,
+                    message: "unable to place order!"
+                });
+            }
         } catch (error) {
-            const updateUserDetails = {
-                colombName: ["balance"],
-                NewColombNameValue: [CuserDetails.balance],
-        
-                conditionColombName: ["id"],
-                conditionColombValue: [CuserDetails.id]
-            };
+            const newData = { balance: Cuser.balance };
             
-            await auth.updateUser(updateUserDetails);
-    
+            const result = await auth.updateUser(Cuser.userID, newData );
+            if (result && result.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...result
+                });
+            }
             return res.status(206).json({
                 status: 206,
                 error,
@@ -267,15 +318,22 @@ export const placeOrderCtr = async (req, res, next) => {
                 err = response.data.error;
                 status = "Pending";
                 note.push("unable to place order through the API at " + apiProviderDetails.name + " because of this error "+err);
-                let data = {
-                    colombName: ["note", "status"],
-                    NewColombNameValue: [`${note}`, `${status}`],
+                // let data = {
+                //     colombName: ["note", "status"],
+                //     NewColombNameValue: [`${note}`, `${status}`],
     
-                    conditionColombName: ["id"],
-                    conditionColombValue: [`${result[0].insertId}`]
-                };
-                await general.updateOrder(data, "AND");
-    
+                //     conditionColombName: ["id"],
+                //     conditionColombValue: [`${result[0].insertId}`]
+                // };
+
+                const newResult = await general.updateOrder(result.orderID, {note, status});
+                if (newResult && newResult.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...newResult,
+                    });
+                }
+
                 return res.status(202).json({
                     status: 202,
                     error: err,
@@ -284,51 +342,75 @@ export const placeOrderCtr = async (req, res, next) => {
             }
     
             if (response.data.order) {
-                let data = {
-                    colombName: ["providerOrderID"],
-                    NewColombNameValue: [`${response.data.order}`],
+                // let data = {
+                //     colombName: ["providerOrderID"],
+                //     NewColombNameValue: [`${response.data.order}`],
         
-                    conditionColombName: ["id"],
-                    conditionColombValue: [`${result[0].insertId}`]
-                };
-                await general.updateOrder(data, "AND");
+                //     conditionColombName: ["id"],
+                //     conditionColombValue: [`${result[0].insertId}`]
+                // };
+                // await general.updateOrder(data, "AND");
+
+                const newResult = await general.updateOrder(result.orderID, {providerOrderID: response.data.order});
+                if (newResult && newResult.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...newResult,
+                    });
+                }
             }
     
             let apiText2 = `${apiProviderDetails.url}?key=${apiProviderDetails.apiKey}&action=status&order=${response.data.order}`;
             const orderIdRes = await axios.post(apiText2);
            
             if (orderIdRes.data.status) {
-                let data = {
-                    colombName: ["apiCharge", "status", "startCount", "remains"],
-                    NewColombNameValue: [`${orderIdRes.data.charge}`, `${orderIdRes.data.status}`, `${orderIdRes.data.start_count}`, `${orderIdRes.data.remains}`],
+                // let data = {
+                //     colombName: ["apiCharge", "status", "startCount", "remains"],
+                //     NewColombNameValue: [`${orderIdRes.data.charge}`, `${orderIdRes.data.status}`, `${orderIdRes.data.start_count}`, `${orderIdRes.data.remains}`],
         
-                    conditionColombName: ["id"],
-                    conditionColombValue: [`${result[0].insertId}`]
-                };
-                await general.updateOrder(data, "AND");
+                //     conditionColombName: ["id"],
+                //     conditionColombValue: [`${result[0].insertId}`]
+                // };
+                // await general.updateOrder(data, "AND");
+
+                const data2 = {
+                    apiCharge: orderIdRes.data.charge,
+                    status: orderIdRes.data.status,
+                    startCount: orderIdRes.data.start_count,
+                    remains: orderIdRes.data.remains,
+                }
+                const newResult = await general.updateOrder(result.orderID, data2);
+                if (newResult && newResult.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...newResult,
+                    });
+                }
             }
     
-            let getOrderRes = await user.getOrderById(`${result[0].insertId}`);
-            if (getOrderRes[0].length == 1) {
+            let getOrderRes = await user.getOrderById(result._id);
+            if (getOrderRes && getOrderRes.status != false) {
                 // getOrderRes = getOrderRes[0][0];
                 getOrderRes = {
-                    orderID: getOrderRes[0][0].orderID,
-                    providerOrderID: getOrderRes[0][0].providerOrderID,
-                    serviceID: getOrderRes[0][0].serviceID,
-                    userID: getOrderRes[0][0].userID,
-                    link: getOrderRes[0][0].link,
-                    quantity: getOrderRes[0][0].quantity,
+                    orderID: getOrderRes.orderID,
+                    providerOrderID: getOrderRes.providerOrderID,
+                    serviceID: getOrderRes.serviceID,
+                    userID: getOrderRes.userID,
+                    link: getOrderRes.link,
+                    quantity: getOrderRes.quantity,
     
-                    amount: getOrderRes[0][0].amount,
-                    costAmount: getOrderRes[0][0].costAmount,
-                    apiCharge: getOrderRes[0][0].apiCharge,
+                    amount: getOrderRes.amount,
+                    costAmount: getOrderRes.costAmount,
+                    apiCharge: getOrderRes.apiCharge,
     
-                    startCount: getOrderRes[0][0].startCount,
-                    remains: getOrderRes[0][0].remains,
+                    startCount: getOrderRes.startCount,
+                    remains: getOrderRes.remains,
     
-                    status: getOrderRes[0][0].status,
-                    createdAt: getOrderRes[0][0].createdAt
+                    status: getOrderRes.status,
+                    createdAt: getOrderRes.createdAt
                 }
+            } else {
+                getOrderRes = result;
             }
     
             return res.status(201).json({
@@ -341,14 +423,21 @@ export const placeOrderCtr = async (req, res, next) => {
             err = error;
             status = "Pending";
             note.push("unable to place order through the API at " + apiProviderDetails.name);
-            let data = {
-                colombName: ["note", "status"],
-                NewColombNameValue: [`${note}`, status],
+            // let data = {
+            //     colombName: ["note", "status"],
+            //     NewColombNameValue: [`${note}`, status],
     
-                conditionColombName: ["id"],
-                conditionColombValue: [`${result[0].insertId}`]
-            };
-            await general.updateOrder(data, "AND");
+            //     conditionColombName: ["id"],
+            //     conditionColombValue: [`${result[0].insertId}`]
+            // };
+            
+            const newResult = await general.updateOrder(result.orderID, {note, status});
+            if (newResult && newResult.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...newResult,
+                });
+            }
     
             return res.status(202).json({
                 status: 202,
@@ -423,15 +512,35 @@ export const addNewApiProviderCtr = async (req, res, next) => {
 
 // get the data dashboard needed data
 export const getDashboardDataCtr = async (req, res, next) => {
-    const sentData = req.body;
-
     try {
+        const sentData = req.body;
+
         let Cuser = await user.getCurrentUser(sentData);
-        Cuser = Cuser[0][0];
+        if (Cuser && Cuser.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: Cuser.message
+            });
+        }
+
         let payments = await user.getUserPayments(sentData);
-        payments = payments[0];
+        if (payments && payments.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: payments.message,
+                user: Cuser
+            });
+        }
+
         let order = await user.getUserOrders(sentData);
-        order = order[0];
+        if (order && order.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: payments.message,
+                user: Cuser,
+                payments: payments
+            });
+        }
 
         for (let i = 0; i < order.length; i++) {
             const element = order[i];
@@ -441,15 +550,11 @@ export const getDashboardDataCtr = async (req, res, next) => {
                 value: element.serviceID
             };
 
-            await services.getSpecificService(data).then(
-                (res) => {
-                    let serviceData = res[0][0];
-                    order[i].serviceCategory = serviceData.serviceCategory;
-                },
-                (err) => {
-                    // console.log(err);
-                }
-            );
+            const serviceResults = await services.getSpecificService(data);
+            if (serviceResults && serviceResults.status != false) {
+                let serviceData = serviceResults[0];
+                order[i].serviceCategory = serviceData.serviceCategory;
+            }
         }
         
         const resData = {
@@ -474,33 +579,32 @@ export const getDashboardDataCtr = async (req, res, next) => {
 
 // get User Orders
 export const getUserOrdersCtr = async (req, res, next) => {
-    const sentData = req.body;
-    // console.log(sentData);
-    const userss = {
-        userID: sentData.userID
-    }
-
     try {
-        let order = await user.getUserOrders(userss);
-        order = order[0];
+        let order = await user.getUserOrders({ userID: req.body.userID });
 
-        for (let i = 0; i < order.length; i++) {
-            const element = order[i];
+        if (order && order.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: order.message
+            });
+        }
 
-            let data = {
-                tbColomb: "serviceID",
-                value: element.serviceID
-            };
+        if (order.length) {
+            for (let i = 0; i < order.length; i++) {
+                const element = order[i];
+    
+                let data = {
+                    tbColomb: "serviceID",
+                    value: element.serviceID
+                };
+    
+                const result = await services.getSpecificService(data);
 
-            await services.getSpecificService(data).then(
-                (res) => {
-                    let serviceData = res[0][0];
+                if (result && result.status != false) {
+                    let serviceData = result[0];
                     order[i].serviceCategory = serviceData.serviceCategory;
-                },
-                (err) => {
-                    // console.log(err);
                 }
-            );
+            }
         }
 
         return res.status(201).json({
@@ -519,11 +623,17 @@ export const getUserOrdersCtr = async (req, res, next) => {
 
 // get user data
 export const getUserCtr = async (req, res, next) => {
-    const userID = req.userID || req.body.userID;
-
     try {
+        const userID = req.userID || req.body.userID;
+        
         let user = await auth.findByID(userID);
-        user = user[0][0];
+
+        if (user.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: 'unable to get user data!'
+            });
+        }
 
         return res.status(201).json({
             status: 201,
@@ -601,17 +711,17 @@ export const createNewTicketCtr = async (req, res, next) => {
         next(error);
     }
 
-    const hostname = req.hostname.toLowerCase();
-
-    const subject = req.body.subject;
-    const message = req.body.message;
-    const ticketID = (""+Date.now()).substring(4,10);
-
-    const userID = req.userID;
-    const email = req.email;
-    let file = '';
-
     try {
+        const hostname = req.hostname.toLowerCase();
+    
+        const subject = req.body.subject;
+        const message = req.body.message;
+        const ticketID = (""+Date.now()).substring(4,10);
+    
+        const userID = req.userID;
+        const email = req.email;
+        let file = '';
+
         // file upload
         if (req.files) {
             const attachedFile = req.files.attachedFile;
@@ -635,22 +745,14 @@ export const createNewTicketCtr = async (req, res, next) => {
                 file = uploadPath;
             }
         };
-   
-        let authUser = 'noreply@24s.club';
-        let authPass = '2UtcLZmJFqMvBCa';
-
-        if (hostname == "secretweb.vip") {
-            authUser = 'support@secretweb.vip';
-            authPass = '8Qd4ibCxqerLe37';
-        };
 
         const mailTransporter = nodemailer.createTransport({
             // service: "gmail",
-            host: "tesamedia.com",
+            host:  process.env.HOST_SENDER,
             port: 465,
             auth: {
-                user: authUser,
-                pass: authPass
+                user: process.env.HOST_EMAIL,
+                pass: process.env.HOST_PASSWORD
             }
         });
 
@@ -684,16 +786,22 @@ export const createNewTicketCtr = async (req, res, next) => {
         `;
 
         let adminUsers = await user.getAdminUsers();
-        adminUsers = adminUsers[0].map( element => 
-            element.email
-        );
+
+        if (adminUsers && adminUsers.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: adminUsers.message
+            });
+        }
+
+        adminUsers = adminUsers.map( element => element.email );
         adminUsers = adminUsers.toString();
 
         const details = {
-            from: authUser,
-            to: adminUsers || `contact@tesamedia.com`, // who should recieve the mail
+            from: `${hostname} <${ process.env.HOST_EMAIL }>`,
+            to: adminUsers || `sundaywht@gmail.com`, // who should recieve the mail
             replyTo: email || '',
-            bcc: `contact@tesamedia.com, ${authUser || 'support@secretweb.vip'}`,
+            // bcc: `contact@tesamedia.com, ${authUser || 'support@secretweb.vip'}`,
             subject: `#ticket: ${ticketID}, ${subject}`,
             text: mailText,
             html: htmlText
@@ -717,8 +825,14 @@ export const createNewTicketCtr = async (req, res, next) => {
             attachedFile: file
         };
 
-        await general.createNewTicket(data2send);
-        
+        const newTicketResult = await general.createNewTicket(data2send);
+        if (newTicketResult && newTicketResult.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: newTicketResult.message
+            });
+        }
+
         return res.status(201).json({
             status: 201,
             data: data2send,
@@ -734,12 +848,17 @@ export const createNewTicketCtr = async (req, res, next) => {
 
 // get User Ticket
 export const getUserTicketCtr = async (req, res, next) => {
-    const userID = req.userID;
-    // const email = req.email;
-
     try {
-        let ticket = await user.getUserTickets({userID});
-        ticket = ticket[0];
+        const userID = req.userID;
+        // const email = req.email;
+
+        const ticket = await user.getUserTickets({userID});
+        if (ticket && ticket.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: ticket.message
+            });
+        }
 
         return res.status(201).json({
             status: 201,
@@ -774,15 +893,15 @@ export const newTicketMessageCtr = async (req, res, next) => {
         error.msg = "sent data validation error";
         next(error);
     }
-
-    const message = req.body.message;
-    const ticketID = req.body.ticketID;
-    let file = '';
-
-    const userID = req.userID;
-    // const email = req.email;
-
+    
     try {
+        const message = req.body.message;
+        const ticketID = req.body.ticketID;
+        let file = '';
+    
+        const userID = req.userID;
+        // const email = req.email;
+
         // file upload
         if (req.files) {
             const attachedFile = req.files.attachedFile;
@@ -814,11 +933,17 @@ export const newTicketMessageCtr = async (req, res, next) => {
             attachedFile: file
         };
 
-        await general.ticket_messages(data2send);
+        const newTicketMessage = await general.ticket_messages(data2send);
+        if (newTicketMessage && newTicketMessage.status) {
+            return res.status(500).json({
+                status: 500,
+                message: newTicketMessage.message
+            });
+        }
 
         return res.status(201).json({
             status: 201,
-            data: data2send,
+            data: newTicketMessage,
             message: 'message sent!'
         });
     } catch (error) {
@@ -831,15 +956,25 @@ export const newTicketMessageCtr = async (req, res, next) => {
 
 // get User's Ticket Message
 export const getUserTicketMessageCtr = async (req, res, next) => {
-    // const userID = req.userID;
-    const ticketID = req.body.ticketID;
-
     try {
-        let ticket = await user.getTicket({ticketID});
-        ticket = ticket[0][0];
+        // const userID = req.userID;
+        const ticketID = req.body.ticketID;
 
-        let ticketMessages = await user.getUserTicketMessage({ticketID});
-        ticketMessages = ticketMessages[0];
+        const ticket = await user.getTicket({ticketID});
+        if (ticket && ticket.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: ticket.message
+            });
+        }
+
+        const ticketMessages = await user.getUserTicketMessage({ticketID});
+        if (ticketMessages && ticketMessages.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: ticketMessages.message
+            });
+        }
 
         return res.status(201).json({
             status: 201,
@@ -857,31 +992,31 @@ export const getUserTicketMessageCtr = async (req, res, next) => {
 
 // generate a New Api Key Controller
 export const generateNewApiKeyCtr = async (req, res, next) => {
-    const userID = req.userID;
-    // const email = req.email;
-
-    const uApiKey = () => {
-        const val1 = Date.now().toString(36);
-        const val2 = Math.random().toString(36).substring(2);
-        return val1 + val2;
-    };
     try {
-        const changeApiKeyDetails = {
-            colombName: ['apiKey'],
-            NewColombNameValue: [`${uApiKey()}`],
+        const userID = req.userID;
+        // const email = req.email;
 
-            conditionColombName: ['userID'],
-            conditionColombValue: [`${userID}`]
+        const uApiKey = () => {
+            const val1 = Date.now().toString(36);
+            const val2 = Math.random().toString(36).substring(2);
+            return val1 + val2;
         };
 
-        await auth.updateUser(changeApiKeyDetails);
+        const updateResult = await auth.updateUser(userID, { apiKey: uApiKey() });
+
+        if (updateResult && updateResult.status == false) {
+            return res.status(500).json({
+                message: "Unable to update user API key",
+                status: updateResult.status
+            });
+        }
 
         // get the the user new data and send back to the view
         let user = await auth.findByID(userID);
-        if (user[0].length !== 1) {
+        if (user && user.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
-            error.message = "an error occured, but Api Key was changed!";
+            error.message = "an error occured, but Api Key was updated!";
 
             return res.status(401).json({
                 error,
@@ -889,7 +1024,6 @@ export const generateNewApiKeyCtr = async (req, res, next) => {
                 message: error.message
             });
         };
-        user = user[0][0];
 
         return res.status(201).json({
             status: 201,
@@ -906,37 +1040,42 @@ export const generateNewApiKeyCtr = async (req, res, next) => {
 
 // add Funds to user balance Controller
 export const addFundsCtr = async (req, res, next) => {
-    const userID = req.userID;
-    // const email = req.email;
-    const sentData = req.body;
-    
     try {
-        const ipResponse = await axios.get("http://ip-api.com/json");
+        const userID = req.userID;
+        // const email = req.email;
+        const sentData = req.body;
 
-        let extraData = JSON.parse(sentData.extraData);
-        extraData.ip = ipResponse.data.query;
-        extraData.lat = ipResponse.data.lat;
-        extraData.lon = ipResponse.data.lon;
-        extraData.country = ipResponse.data.country;
-        extraData.usedNetwork = ipResponse.data.as;
+        // const ipResponse = await axios.get("http://ip-api.com/json");
+        // let extraData = JSON.parse(sentData.extraData);
+        // extraData.ip = ipResponse.data.query;
+        // extraData.lat = ipResponse.data.lat;
+        // extraData.lon = ipResponse.data.lon;
+        // extraData.country = ipResponse.data.country;
+        // extraData.usedNetwork = ipResponse.data.as;
 
-        extraData = JSON.stringify(extraData);
+        // extraData = JSON.stringify(extraData);
 
         const data2send = {
             transactionID: sentData.transactionID,
             userID: userID,
             currency: sentData.currency,
             paymentMethod: sentData.paymentMethod,
-            extraData: extraData,
+            extraData: sentData.extraData,
             amount: sentData.amount,
             status: sentData.status
         };
 
-        await user.addFunds(data2send);
+        const result1 = await user.addFunds(data2send);
+        if (result1 && result1.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: result1.message
+            });
+        }
 
         // get the the user data
         let Cuser = await auth.findByID(userID);
-        if (Cuser[0].length !== 1) {
+        if (Cuser && Cuser.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
             error.message = "Payment successful, but couldn't add to your curreent blance, please contact admins with this payment transaction id: "+data2send.transactionID;
@@ -947,7 +1086,7 @@ export const addFundsCtr = async (req, res, next) => {
                 message: error.message
             });
         }
-        Cuser = Cuser[0][0];
+        // Cuser = Cuser[0][0];
 
         // if its a failed transaction it ends here
         if (sentData.status == 'Failed') {
@@ -958,14 +1097,21 @@ export const addFundsCtr = async (req, res, next) => {
             });
         }
 
-        const newBalanceDetails = {
-            colombName: ['balance'],
-            NewColombNameValue: [`${sentData.amount + Cuser.balance}`],
+        // const newBalanceDetails = {
+        //     colombName: ['balance'],
+        //     NewColombNameValue: [`${sentData.amount + Cuser.balance}`],
 
-            conditionColombName: ['userID'],
-            conditionColombValue: [`${userID}`]
-        };
-        await auth.updateUser(newBalanceDetails);
+        //     conditionColombName: ['userID'],
+        //     conditionColombValue: [`${userID}`]
+        // };
+
+        const result2 = await auth.updateUser(userID, { balance: sentData.amount + Cuser.balance });
+        if (result2 && result2.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: result2.message
+            });
+        }
 
         Cuser.balance = sentData.amount + Cuser.balance;
 
@@ -984,17 +1130,22 @@ export const addFundsCtr = async (req, res, next) => {
 
 // get users payment transactions
 export const getPaymentTransactionsCtr = async (req, res, next) => {
-    const userID = req.userID;
-    
     try {
+        const userID = req.userID;
         // send an object with userID property
         let payments = await user.getUserPayments({userID});
-        payments = payments[0];
+
+        if (payments && payments.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: 'unable to get payment transactions!'
+            });
+        }
 
         return res.status(201).json({
             status: 201,
             payments,
-            message: 'Funds added Successfully!'
+            message: 'successfully!'
         });
     } catch (error) {
         if (!error.statusCode) {
@@ -1006,12 +1157,13 @@ export const getPaymentTransactionsCtr = async (req, res, next) => {
 
 // get Payment Method transactions
 export const getPaymentMethodCtr = async (req, res, next) => {
-    const userID = req.userID;
-    
     try {
+        const userID = req.userID;
+
         // get the the user data
         let Cuser = await auth.findByID(userID);
-        if (Cuser[0].length !== 1) {
+        // console.log(Cuser);
+        if (Cuser && Cuser.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
             error.message = "user authentication error";
@@ -1022,28 +1174,21 @@ export const getPaymentMethodCtr = async (req, res, next) => {
                 message: error.message
             });
         }
-        Cuser = Cuser[0][0];
-
-        const user = {
-            userID: Cuser.userID,
-            role: Cuser.role,
-            name: Cuser.name,
-            username: Cuser.username,
-            email: Cuser.email,
-            phoneNumber: Cuser.phoneNumber,
-            balance: Cuser.balance,
-            apiKey: Cuser.apiKey,
-            country: Cuser.country,
-            status: Cuser.status
-        };
 
         // get Payment Methods
         let paymentMethods = await general.getPaymentMethods();
-        paymentMethods = paymentMethods[0];
+
+        if (paymentMethods && paymentMethods.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: paymentMethods.message,
+                msg: "unable to get payment methods"
+            });
+        }
 
         return res.status(201).json({
             status: 201,
-            user,
+            user: Cuser,
             paymentMethods
         });
     } catch (error) {

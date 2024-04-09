@@ -7,6 +7,8 @@ import nodemailer from 'nodemailer';
 
 // models
 import { auth } from '../models/users.js';
+import { userModel } from "../util/users.model.js";
+
 
 const secretForToken = process.env.JWT_SECRET;
 
@@ -29,13 +31,13 @@ export const signupController = async (req, res, next) => {
         next(error);
     }
 
-    const uApiKey = () => {
-        const val1 = Date.now().toString(36);
-        const val2 = Math.random().toString(36).substring(2);
-        return val1 + val2;
-    }
-
     try {
+        const uApiKey = () => {
+            const val1 = Date.now().toString(36);
+            const val2 = Math.random().toString(36).substring(2);
+            return val1 + val2;
+        }
+        
         const hashedPassword = await bcryptjs.hash(req.body.password, 12);
         const userDetails = {
             userID: await uuidv4(),
@@ -48,24 +50,35 @@ export const signupController = async (req, res, next) => {
             apiKey: uApiKey(),
             password: hashedPassword
         };
-        const result = await auth.save(userDetails);
-           
-        const token = Jwt.sign(
-            {
-                username: userDetails.username,
-                email: userDetails.email,
-                userID: userDetails.userID
-            },
-            `${secretForToken}`,
-            { expiresIn: '24h' }
-        );
 
-        return res.status(201).json({
-            status: 201,
-            token,
-            userID: userDetails.userID,
-            message: 'User registered successfully!'
+        const result = await auth.save(userDetails);
+        // console.log(result);
+
+        if (result.status != false) {
+            const token = Jwt.sign(
+                {
+                    username: userDetails.username,
+                    email: userDetails.email,
+                    userID: userDetails.userID
+                },
+                `${secretForToken}`,
+                { expiresIn: '24h' }
+            );
+    
+            return res.status(201).json({
+                status: 201,
+                token,
+                userID: userDetails.userID,
+                message: 'User registered successfully!'
+            });
+        }
+        
+        
+        return res.status(500).json({
+            status: 500,
+            message: result.message || 'unable to register new user.'
         });
+           
     } catch (error) {
         if (!error.statusCode) {
             error.statusCode = 500;
@@ -75,12 +88,31 @@ export const signupController = async (req, res, next) => {
 }
 
 export const loginController = async (req, res, next) => {
-    const usernameEmail = req.body.usernameEmail;
-    const password = req.body.password;
+    try {
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            return res.status(401).json({
+                status: 401,
+                message: 'Incorrect username/email or password!', 
+                errors
+            });
+        };
+    } catch (error) {
+        if (!error.statusCode) {
+            error.statusCode = 500;
+        }
+        error.msg = "sent data validation error";
+        next(error);
+    }
 
     try {
+        const usernameEmail = req.body.usernameEmail;
+        const password = req.body.password;
+
         const user = await auth.find(usernameEmail);
-        if (user[0].length !== 1) {
+
+        if (user.status && user.status == false) {
             const error = new Error('A user with this username or email could not be found!');
             error.statusCode = 401;
             error.message = 'Incorrect username or email!';
@@ -94,8 +126,7 @@ export const loginController = async (req, res, next) => {
             });
         };
 
-        const storedUser = user[0][0];
-        const isPassEqual = await bcryptjs.compare(password, storedUser.password);
+        const isPassEqual = await bcryptjs.compare(password, user.password);
 
         if (!isPassEqual) {
             const error = new Error('Wrong password!');
@@ -113,9 +144,9 @@ export const loginController = async (req, res, next) => {
         
         const token = Jwt.sign(
             {
-                username: storedUser.username,
-                email: storedUser.email,
-                userID: storedUser.userID
+                username: user.username,
+                email: user.email,
+                userID: user.userID
             },
             `${secretForToken}`,
             { expiresIn: '24h' }
@@ -125,7 +156,7 @@ export const loginController = async (req, res, next) => {
             status: 201,
             message: 'Login successfully!',
             token: token,
-            userID: storedUser.userID
+            userID: user.userID,
         });
     } catch (error) {
         if (!error.statusCode) {
@@ -136,14 +167,16 @@ export const loginController = async (req, res, next) => {
 }
 
 export const updateUserProfileCtr = async (req, res, next) => {
-    const userID = req.body.userID;
-    const password = req.body.password;
-    const formKeys = req.body.formKeys;
-    const formValues = req.body.formValues;
-
     try {
+        const userID = req.body.userID;
+        const password = req.body.password;
+        const formData = req.body.formData;
+
+        const formKeys = req.body.formKeys;
+        const formValues = req.body.formValues;
+
         const user = await auth.findByID(userID);
-        if (user[0].length !== 1) {
+        if (user && user.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
             error.message = "unable to verify user's ID, please refreash and try again!!!";
@@ -154,8 +187,7 @@ export const updateUserProfileCtr = async (req, res, next) => {
                 msg: error.message
             });
         };
-        const storedUser = user[0][0];
-        const isPassEqual = await bcryptjs.compare(password, storedUser.password);
+        const isPassEqual = await bcryptjs.compare(password, user.password);
 
         if (!isPassEqual) {
             const error = new Error('Wrong password!');
@@ -171,6 +203,29 @@ export const updateUserProfileCtr = async (req, res, next) => {
             });
         };
        
+        
+        // const updatedUser = await userModel.findOneAndUpdate(
+        //     { email: user.email }, 
+        //     { password: hashedPassword },
+        //     {
+        //         runValidators: true,
+        //         returnOriginal: false,
+        //     }
+        // );
+
+        // if (updatedUser) {
+        //     return res.status(201).json({
+        //         status: 201,
+        //         message: 'Password Changed successfully!',
+        //     });
+        // }
+
+        // return res.status(500).json({
+        //     status: 500,
+        //     message: 'Ooopps unable to update password.',
+        // });
+
+
         const profileUpdateDetails = {
             colombName: formKeys,
             NewColombNameValue: formValues,
@@ -178,14 +233,22 @@ export const updateUserProfileCtr = async (req, res, next) => {
             conditionColombName: ['userID'],
             conditionColombValue: [`${userID}`]
         };
-        const updatedUser = await auth.updateUser(profileUpdateDetails);
 
-        const newUserData = await auth.findByID(userID);
+        const updatedUser = await auth.updateUser( userID, formData);
+        if (updatedUser && updatedUser.status == false) {
+            return res.status(500).json({
+                status: 500,
+                message: updatedUser.message,
+            });
+        }
+
+        // const newUserData = await auth.findByID(userID);
 
         return res.status(201).json({
             status: 201,
             message: 'Profile details updated successfully!',
-            user: newUserData[0][0],
+            // user: newUserData[0][0],
+            user: updatedUser,
         });
     } catch (error) {
         if (!error.statusCode) {
@@ -196,13 +259,13 @@ export const updateUserProfileCtr = async (req, res, next) => {
 }
 
 export const changePasswordCtr = async (req, res, next) => {
-    const userID = req.body.userID;
-    const password = req.body.currentPassword;
-    const newPassword = req.body.newPassword;
-
     try {
+        const userID = req.body.userID;
+        const password = req.body.currentPassword;
+        const newPassword = req.body.newPassword;
+
         const user = await auth.findByID(userID);
-        if (user[0].length !== 1) {
+        if (user && user.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
             error.message = "Incorrect user's ID";
@@ -214,9 +277,7 @@ export const changePasswordCtr = async (req, res, next) => {
             });
         };
 
-        const storedUser = user[0][0];
-        const isPassEqual = await bcryptjs.compare(password, storedUser.password);
-
+        const isPassEqual = await bcryptjs.compare(password, user.password);
         if (!isPassEqual) {
             const error = new Error('Wrong password!');
             error.statusCode = 401;
@@ -232,15 +293,22 @@ export const changePasswordCtr = async (req, res, next) => {
         }
 
         const hashedPassword = await bcryptjs.hash(newPassword, 12);
-        
-        const changePasswordDetails = {
-            colombName: ['password'],
-            NewColombNameValue: [`${hashedPassword}`],
 
-            conditionColombName: ['userID'],
-            conditionColombValue: [`${userID}`]
-        };
-        const updatedUser = await auth.updateUser(changePasswordDetails);
+        const updatedUser = await userModel.findOneAndUpdate(
+            { userID: user.userID }, 
+            { password: hashedPassword },
+            {
+                runValidators: true,
+                returnOriginal: false,
+            }
+        );
+        
+        if (updatedUser && updatedUser.status) {
+            return res.status(500).json({
+                status: 500,
+                message: 'Ooopps unable to update password.',
+            });
+        }
 
         return res.status(201).json({
             status: 201,
@@ -272,10 +340,10 @@ export const sendPasswordResetEmailCtr = async (req, res, next) => {
         next(error);
     }
 
-    const email = req.body.email;
-    const hostname = req.hostname.toLowerCase();
-
     try {
+        const email = req.body.email;
+        const hostname = req.hostname.toLowerCase();
+
         const verificationToken = Date.now().toString(36);
         const token4passwordReset = Jwt.sign(
             {
@@ -286,23 +354,13 @@ export const sendPasswordResetEmailCtr = async (req, res, next) => {
             { expiresIn: '1h' }
         );
 
-        // console.log(verificationToken);
-
-        let authUser = 'noreply@24s.club';
-        let authPass = '2UtcLZmJFqMvBCa';
-
-        if (hostname == "secretweb.vip") {
-            authUser = 'support@secretweb.vip';
-            authPass = '8Qd4ibCxqerLe37';
-        };
-
         const mailTransporter = nodemailer.createTransport({
             // service: "gmail",
-            host: "tesamedia.com",
+            host:  process.env.HOST_SENDER,
             port: 465,
             auth: {
-                user: authUser,
-                pass: authPass
+                user: process.env.HOST_EMAIL,
+                pass: process.env.HOST_PASSWORD
             }
         });
 
@@ -337,7 +395,7 @@ export const sendPasswordResetEmailCtr = async (req, res, next) => {
         `;
 
         const details = {
-            from: authUser,
+            from: `${hostname} <${ process.env.HOST_EMAIL }>`,
             to: `${email}`,
             subject: "Rest Password",
             text: mailText,
@@ -368,25 +426,27 @@ export const sendPasswordResetEmailCtr = async (req, res, next) => {
 }
 
 export const verifyEmailTokenCtr = async (req, res, next) => {
-    const verificationCode = req.body.verificationCode;
-
-    const authHeader = req.get('Authorization');
-
-    if (!authHeader) {
-        const error = new Error("Not authenticated!");
-        error.statusCode = 401;
-        error.message = "Not authenticated! Please try again.";
-
-        return res.json({
-            message: error.message,
-            statusCode: error.statusCode,
-            error
-        });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let  decodedToken;
     try {
+        const verificationCode = req.body.verificationCode;
+    
+        const authHeader = req.get('Authorization');
+    
+        if (!authHeader) {
+            const error = new Error("Not authenticated!");
+            error.statusCode = 401;
+            error.message = "Not authenticated! Please try again.";
+    
+            return res.json({
+                message: error.message,
+                statusCode: error.statusCode,
+                error
+            });
+        }
+    
+        const token = authHeader.split(' ')[1];
+        let  decodedToken;
+
+
         decodedToken = Jwt.verify(token, `${verificationCode}`);
 
         if (!decodedToken || decodedToken[`token`] != verificationCode) {
@@ -428,13 +488,13 @@ export const resetPasswordCtr = async (req, res, next) => {
         error.msg = "sent data validation error";
         next(error);
     }
-
-    const email = req.body.email;
-    const newPassword = req.body.password;
-
+    
     try {
+        const email = req.body.email;
+        const newPassword = req.body.password;
+
         const user = await auth.findEmail(email);
-        if (user[0].length !== 1) {
+        if (user.status && user.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
             error.message = "Incorrect user's ID";
@@ -446,21 +506,27 @@ export const resetPasswordCtr = async (req, res, next) => {
             });
         };
 
-        const storedUser = user[0][0];
         const hashedPassword = await bcryptjs.hash(newPassword, 12);
-        
-        const changePasswordDetails = {
-            colombName: ['password'],
-            NewColombNameValue: [`${hashedPassword}`],
 
-            conditionColombName: ['email'],
-            conditionColombValue: [`${email}`]
-        };
-        const updatedUser = await auth.updateUser(changePasswordDetails);
+        const updatedUser = await userModel.findOneAndUpdate(
+            { email: user.email }, 
+            { password: hashedPassword },
+            {
+                runValidators: true,
+                returnOriginal: false,
+            }
+        );
 
-        return res.status(201).json({
-            status: 201,
-            message: 'Password Changed successfully!',
+        if (updatedUser) {
+            return res.status(201).json({
+                status: 201,
+                message: 'Password Changed successfully!',
+            });
+        }
+
+        return res.status(500).json({
+            status: 500,
+            message: 'Ooopps unable to update password.',
         });
     } catch (error) {
         if (!error.statusCode) {

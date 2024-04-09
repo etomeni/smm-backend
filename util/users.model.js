@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import validator from 'validator';
 
 const userSchema = mongoose.Schema(
     {
@@ -38,10 +39,10 @@ const userSchema = mongoose.Schema(
             type: String,
             required: [true, "Please enter the user Phone number."],
 
-            unique: true,
+            // unique: true,
             validate: {
                 validator: (v) => validator.isMobilePhone(v),
-                message: ({ value }) => `${value} is not a valid email`,
+                message: ({ value }) => `${value} is not a phone number.`,
             },
         }, 
         balance: {

@@ -34,7 +34,7 @@ export class auth {
     };
 
     static async find(usernameEmail) {
-        const userExists = await UserModel.findOne({
+        const userExists = await userModel.findOne({
             $or: [
               { email: usernameEmail },
               { username: usernameEmail }
@@ -51,8 +51,8 @@ export class auth {
         }
     };
 
-    static async findByID(userID) {
-        const userExists = await userModel.findOne({ userID });
+    static async findByID(userId) {
+        const userExists = await userModel.findOne({ userID: userId });
 
         if (userExists) {
             return userExists;
@@ -79,47 +79,65 @@ export class auth {
 
 
     static async save(user) {
-        const newUser = new userModel({
-            userID: user.userID, 
-            name: user.name, 
-            username: user.username,
-            email: user.email, 
-            phoneNumber: user.phoneNumber,
-            apiKey: user.apiKey,
-            ipHistory: user.ipHistory,
-            country: user.country,
-            password: user.password
-        });
+        try {
+            const newUser = new userModel({
+                userID: user.userID, 
+                name: user.name, 
+                username: user.username,
+                email: user.email, 
+                phoneNumber: user.phoneNumber,
+                apiKey: user.apiKey,
+                ipHistory: user.ipHistory,
+                country: user.country,
+                password: user.password
+            });
+    
+            const result = await newUser.save();
 
-        const result = await newUser.save();
-        if (result) {
-            return result;
-        } else {
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Error creating new user.",
+                    status: false
+                }
+            }
+            
+        } catch (error) {
             return {
-                message: "Error creating new user.",
+                error,
+                message: error._message || "Error creating new user.",
                 status: false
             }
         }
     };
 
-    static async updateUser(user, condition="AND") {
-
-        const updatedUser = await UserModel.findOneAndUpdate(
-            { userID: user.id }, 
-            user,
-            {
-                runValidators: true,
-                returnOriginal: false,
+    static async updateUser(userId, updatedUserData) {
+        try {
+            const updatedUser = await userModel.findOneAndUpdate(
+                { userID: userId },
+                updatedUserData,
+                {
+                    runValidators: true,
+                    returnOriginal: false,
+                }
+            );
+    
+            if (updatedUser) {
+                return updatedUser;
+            } else {
+                return {
+                    message: "unable to update user data",
+                    status: false
+                }
             }
-        );
-
-        if (updatedUser) {
-            return updatedUser;
-        } else {
+        } catch (error) {
             return {
                 message: "unable to update user data",
-                status: false
+                status: false,
+                error
             }
+            
         }
     };
 
@@ -127,16 +145,24 @@ export class auth {
 
 export class user {
 
-    static orderBalDeduction(data, condition="AND") {
-
-        const db = this.dbConnect();
-
-        let sqlText = this.multipleUpdate(data, "users", condition);
-
-        return db.execute(
-            sqlText,
-            data.NewColombNameValue
-        );
+    static async orderBalDeduction(condition, data) {
+        try {
+            const result = await userModel.updateOne(condition, data);
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update user balance.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update user balance.",
+                status: false,
+                error
+            }
+        }
     };
 
     static async getCurrentUser(user) {
@@ -281,7 +307,7 @@ export class user {
             }
         } catch (error) {
             return {
-                message: "unable to get tickets",
+                message: error.Error ||error.error || "unable to get tickets",
                 status: false,
                 error
             }
@@ -302,12 +328,12 @@ export class user {
             } else {
                 return {
                     status: false,
-                    message: `unable to get tickets.`,
+                    message: `unable to get ticket messages.`,
                 }
             }
         } catch (error) {
             return {
-                message: "unable to get tickets",
+                message: "unable to get tickets messages.",
                 status: false,
                 error
             }
@@ -368,7 +394,7 @@ export class user {
             }
         } catch (error) {
             return {
-                message: "Error creating new transaction.",
+                message: "Error adding funds to account.",
                 status: false,
                 error
             }

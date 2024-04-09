@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import validator from 'validator';
 
 const ticketSchema = mongoose.Schema(
     {
@@ -21,7 +22,8 @@ const ticketSchema = mongoose.Schema(
         },
         attachedFile: {
             type: String,
-            required: true,
+            // required: true,
+            default: ''
         },
         isRead: {
             type: Number,

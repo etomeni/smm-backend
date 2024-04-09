@@ -40,7 +40,7 @@ router.post(
         .custom(async (username) => {
             try {
                 const userExist = await auth.findUsername(username);
-                if (userExist[0].length > 0) {
+                if (userExist.status != false) {
                     return Promise.reject('Username already exist');
                 }
             } catch (error) {
@@ -53,7 +53,7 @@ router.post(
         .custom(async (email) => {
             try {
                 const userExist = await auth.findEmail(email);
-                if (userExist[0].length > 0) {
+                if (userExist.status != false) {
                     return Promise.reject('Email Address already exist!');
                 }
             } catch (error) {
@@ -76,7 +76,7 @@ router.post(
             const formData = req.body;
         
             const userExist = await auth.find(formData.usernameEmail);
-            if (userExist[0].length > 0) {
+            if (userExist.status != false) {
                 return res.status(208).json({
                     status: 208,
                     message: `${formData.name} already exist!`,
@@ -99,6 +99,11 @@ router.post(
 // Login
 router.post(
     '/login',
+    [
+        body('usernameEmail').trim()
+        .isEmail().withMessage('Please enter a valid email or username'),
+        body('password').trim().not().isEmpty()
+    ],
     loginController
 );
 
@@ -125,7 +130,7 @@ router.post(
         .custom(async (email) => {
             try {
                 const userExist = await auth.findEmail(email);
-                if (!(userExist[0].length > 0)) {
+                if (userExist.status && userExist.status == false) {
                     return Promise.reject('User with this Email Address does not exist!');
                 }
             } catch (error) {

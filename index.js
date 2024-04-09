@@ -50,14 +50,15 @@ app.use(get500);
 
 const dbAccess = process.env.MONGO_DB_ACCESS_URI;
 
-// mongoose.connect(dbAccess)
-// .then(() => {
-//     app.listen(PORT, () => {
-//         console.log(`Server Running on port: http://localhost:${PORT}`);
-//     })
-// })
-// .catch((err) => console.log(err));
-
-app.listen(PORT, () => {
-    console.log(`Server Running on port: http://localhost:${PORT}`);
+mongoose.connect(dbAccess)
+.then((res) => {
+    // console.log(res);
+    app.listen(PORT, () => {
+        console.log(`Server Running on port: http://localhost:${PORT}`);
+    })
 })
+.catch((err) => console.log(err));
+
+// app.listen(PORT, () => {
+//     console.log(`Server Running on port: http://localhost:${PORT}`);
+// })

@@ -8,10 +8,6 @@ import { paymentMethodModel } from "./../util/paymentMethod.model.js";
 
 
 export class admin {
-    static dbConnect() {
-        return "";
-    };
-    
     constructor() { }
 
     static async getApiBalance() {
@@ -40,7 +36,158 @@ export class admin {
 
     static async getTotalOrders() {
         try {
-            const result = await orderModel.countDocuments();
+            const result = await orderModel.countDocuments({}).exec();
+            // const result = await orderModel.find({}).count();
+            return result;
+
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to count total orders.",
+                    status: false,
+                }
+            }
+            
+        } catch (error) {
+            return {
+                message: "Unable to count total orders.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     `SELECT COUNT(orders.id) AS totalOrders FROM orders;`,
+        // )
+    };
+
+    static async getTotalProfit() {
+        try {
+            const pipeline = [
+                {
+                    $match: {
+                        status: { $ne: 'Refunded' } // Filter orders with status not equal to 'Refunded'
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalProfit: {
+                            $sum: { $subtract: ['$amount', '$apiCharge'] } // Calculate total profit
+                        }
+                    }
+                }
+            ];
+
+            const result = await orderModel.aggregate(pipeline).exec();
+            if (result) {
+                const totalProfit = result[0]?.totalProfit || 0;
+                return totalProfit;
+            } else {
+                return {
+                    message: "Error calculating total profit.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error calculating total profit.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     // `SELECT SUM(orders.profit) AS totalProfit FROM orders WHERE status != 'Refunded';`,
+        //     `SELECT SUM(orders.amount - orders.apiCharge) AS totalProfit FROM orders WHERE status != 'Refunded';`,
+        // )
+    };
+
+    static async getMonthlyProfit() {
+        try {
+            // Get the current month (0-indexed, where January is 0)
+            const currentMonth = new Date().getMonth();
+
+            // Create a Mongoose aggregation pipeline
+            const pipeline = [
+                {
+                    $match: {
+                        status: { $ne: 'Refunded' },
+                        // createdAt: { $expr: { $eq: [{ $month: '$createdAt' }, currentMonth] } },
+                        $expr: { $eq: [{ $month: '$createdAt' }, currentMonth] }, // Filter by current month
+
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        monthlyProfit: {
+                            $sum: { $subtract: ['$amount', '$apiCharge'] }
+                        }
+                    }
+                }
+            ];
+
+            const result = await orderModel.aggregate(pipeline).exec();
+
+            if (result) {
+                const monthlyProfit = result[0]?.monthlyProfit || 0;
+                return monthlyProfit;
+            } else {
+                return {
+                    message: "Error calculating monthly profit.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error calculating monthly profit.",
+                status: false,
+                error
+            }
+        }
+
+
+        // return db.execute(
+        //     `SELECT SUM(orders.amount - orders.apiCharge) AS monthlyProfit 
+        //      FROM orders 
+        //      WHERE status != 'Refunded'
+        //      AND createdAt = ${new Date().getMonth()}
+        //      ;
+        //     `,
+        // )
+    };
+    
+    static async getTotalPayments() {
+        try {
+            const result = await paymentTransactionModel.countDocuments({}).exec();
+
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to count total payment transaction.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to count total payment transaction.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     `SELECT COUNT(payment_transactions.id) AS totalPayments FROM payment_transactions;`,
+        // )
+    };
+
+    static async getTotalUsers() {
+        try {
+            const result = await userModel.countDocuments({});
+
             if (result) {
                 return result;
             } else {
@@ -58,62 +205,58 @@ export class admin {
         }
 
         // return db.execute(
-        //     `SELECT COUNT(orders.id) AS totalOrders FROM orders;`,
+        //     `SELECT COUNT(users.id) AS totalUsers FROM users WHERE 1;`,
         // )
     };
 
-    static getTotalProfit() {
-        const db = this.dbConnect();
+    static async getTotalUserUsers() {
+        try {
+            const result = await userModel.countDocuments({ role: { $ne: 'admin' } });
 
-        return db.execute(
-            // `SELECT SUM(orders.profit) AS totalProfit FROM orders WHERE status != 'Refunded';`,
-            `SELECT SUM(orders.amount - orders.apiCharge) AS totalProfit FROM orders WHERE status != 'Refunded';`,
-        )
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to count total orders.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to count total users.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     `SELECT COUNT(users.id) AS totalUsers FROM users WHERE role != 'admin';`,
+        // )
     };
 
-    static getMonthlyProfit() {
-        const db = this.dbConnect();
+    static async getTotalTickets() {
+        try {
+            const result = await ticketModel.countDocuments({ status: 1 }).exec();
 
-        return db.execute(
-            `SELECT SUM(orders.amount - orders.apiCharge) AS monthlyProfit 
-             FROM orders 
-             WHERE status != 'Refunded'
-             AND createdAt = ${new Date().getMonth()}
-             ;
-            `,
-        )
-    };
-    
-    static getTotalPayments() {
-        const db = this.dbConnect();
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to count total tickets.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to count total tickets.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `SELECT COUNT(payment_transactions.id) AS totalPayments FROM payment_transactions;`,
-        )
-    };
-
-    static getTotalUsers() {
-        const db = this.dbConnect();
-
-        return db.execute(
-            `SELECT COUNT(users.id) AS totalUsers FROM users WHERE 1;`,
-        )
-    };
-
-    static getTotalUserUsers() {
-        const db = this.dbConnect();
-
-        return db.execute(
-            `SELECT COUNT(users.id) AS totalUsers FROM users WHERE role != 'admin';`,
-        )
-    };
-
-    static getTotalTickets() {
-        const db = this.dbConnect();
-
-        return db.execute(
-            `SELECT COUNT(tickets.id) AS totalTickets FROM tickets WHERE tickets.status = 1;`,
-        )
+        // return db.execute(
+        //     `SELECT COUNT(tickets.id) AS totalTickets FROM tickets WHERE tickets.status = 1;`,
+        // );
     };
 
     static async getDashboardOrders() {
@@ -495,26 +638,51 @@ export class admin {
     };
 
     // Add New Provider API to the Database
-    static addNewApiProvider(data) {
+    static async addNewApiProvider(data) {
+        try {
+            const newApiProvider = new apiProviderModel({
+                APIproviderID: data.APIproviderID,
+                userID: data.userID,
+                name: data.name,
+                url: data.url,
+                key: data.key,
+                balance: data.balance,
+                currency: data.currency,
+                description: data.description,
+                status: data.status                
+            });
+    
+            const result = await newApiProvider.save();
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Error new api provider.",
+                    status: false
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error new api provider.",
+                status: false,
+                error
+            }
+        }
 
-
-
-        const db = this.dbConnect();
-
-        return db.execute(
-            'INSERT INTO API_Provider (APIproviderID, userID, name, url, apiKey, balance, currency, description, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);',
-            [ 
-                data.APIproviderID, 
-                data.userID, 
-                data.name, 
-                data.url, 
-                data.apiKey, 
-                data.balance, 
-                data.currency, 
-                data.description, 
-                data.status
-            ]
-        )
+        // return db.execute(
+        //     'INSERT INTO API_Provider (APIproviderID, userID, name, url, apiKey, balance, currency, description, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);',
+        //     [ 
+        //         data.APIproviderID, 
+        //         data.userID, 
+        //         data.name, 
+        //         data.url, 
+        //         data.apiKey, 
+        //         data.balance, 
+        //         data.currency, 
+        //         data.description, 
+        //         data.status
+        //     ]
+        // )
     };
 
     // Update Multiple API Provider colomb
@@ -646,237 +814,474 @@ export class admin {
         }
 
 
-        return db.execute(
-            'INSERT INTO payment_method (paymentMethodID, name, currency, minAmount, maxAmount, exchangeRate, data, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-            [ 
-                data.paymentMethodID, 
-                data.name, 
-                data.currency, 
-                data.minAmount, 
-                data.maxAmount, 
-                data.exchangeRate, 
-                data.data, 
-                data.status
-            ]
-        )
+        // return db.execute(
+        //     'INSERT INTO payment_method (paymentMethodID, name, currency, minAmount, maxAmount, exchangeRate, data, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+        //     [ 
+        //         data.paymentMethodID, 
+        //         data.name, 
+        //         data.currency, 
+        //         data.minAmount, 
+        //         data.maxAmount, 
+        //         data.exchangeRate, 
+        //         data.data, 
+        //         data.status
+        //     ]
+        // )
     };
 
     // update Payment Method
-    static updatePaymentMethod(data, condition) {
-        const db = this.dbConnect();
-
-        let sqlText = this.multipleUpdate(data, "payment_method" || data.tableName, condition);
-
-        return db.execute(
-            sqlText,
-            data.NewColombNameValue
-        )
+    static async updatePaymentMethod(data, condition) {
+        try {
+            const result = await paymentMethodModel.updateMany(condition, data);
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update payment method.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update payment method.",
+                status: false,
+                error
+            }
+        }
     };
 
-    static deletePaymentMethod(data) {
-        const db = this.dbConnect();
+    static async deletePaymentMethod(paymentMethodId) {
+        try {
+            // Create a Mongoose query to delete the document with the specified id
+            const result = await paymentMethodModel.deleteOne({ paymentMethodID: paymentMethodId });
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Error deleting payment method.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error deleting payment method.",
+                status: false,
+                error
+            }
+        }
 
-        return db.execute(
-            `DELETE FROM payment_method WHERE payment_method.id = '${data}';`
-        );
+        // return db.execute(
+        //     `DELETE FROM payment_method WHERE payment_method.id = '${data}';`
+        // );
     };
 
-    static getReportYears(createdAt = 'createdAt', tbName = 'users') {
-        const db = this.dbConnect();
+    static async getReportYears(createdAt = 'createdAt', tbName = 'users') {
+        try {
+            const pipeline = [
+                {
+                    $project: {
+                        year: { $year: '$createdAt' } // Extract the year from createdAt
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        years: { $addToSet: '$year' } // Collect distinct years
+                    }
+                }
+            ];
 
-        return db.execute(
-            `SELECT DISTINCT YEAR(${createdAt}) AS years FROM ${tbName};`,
-            // [data]
-        );
+            const result = await paymentMethodModel.aggregate(pipeline);
+
+            if (result) {
+                console.log(result);
+                const distinctYears = result[0]?.years || [];
+
+                return distinctYears;
+            } else {
+                return {
+                    message: "Error fetching distinct years.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error fetching distinct years.",
+                status: false,
+                error
+            }
+        }
+
+        // return db.execute(
+        //     `SELECT DISTINCT YEAR(${createdAt}) AS years FROM ${tbName};`,
+        // );
     };
 
     // get Users Report data
-    static getUsersReport(data, colombName='createdAt') {
-        const db = this.dbConnect();
+    static async getUsersReport(data, colombName='createdAt') {
+        try {
+            // Assuming you have a Mongoose model called "User" for the "users" collection
 
-        // updatedAt, createdAt, 
-        let sqlText = `
-            SELECT 
-                DATE_FORMAT(updatedAt, '%m/%d/%y') AS updatedAt,
-                DATE_FORMAT(createdAt, '%m/%d/%y') AS createdAt,
-                SUM(balance) AS totalBalance, 
-                COUNT(${colombName}) AS numCount
-            FROM users
-        `;
-        
-        switch (data.date) {
-            case 'year':
-                sqlText += ` GROUP BY EXTRACT(YEAR FROM ${colombName});`;
-                break;
-        
-            case 'month':
-                sqlText += ` 
-                    WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year} 
-                    GROUP BY EXTRACT(MONTH FROM ${colombName});
-                `;
-                break;
-        
-            case 'day':
-                sqlText += ` 
-                    WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year}
-                    AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
-                    GROUP BY EXTRACT(DAY FROM ${colombName});
-                `;
-                break;
-        
-            default:
-                // AND EXTRACT(MONTH FROM ${data.colombName}) = ${data.month}
-                sqlText += ` 
-                    WHERE ${colombName} > (curdate() - interval 30 day)
-                    AND EXTRACT(YEAR FROM ${colombName}) = ${data.year}
-                    GROUP BY EXTRACT(DAY FROM ${colombName});
-                `;
-                break;
+            // Define the aggregation pipeline stages
+            const pipeline = [
+                {
+                    $project: {
+                        updatedAt: { $dateToString: { format: "%m/%d/%y", date: "$updatedAt" } },
+                        createdAt: { $dateToString: { format: "%m/%d/%y", date: "$createdAt" } },
+                        balance: 1,
+                        [colombName]: 1,
+                    },
+                },
+                {
+                    $group: {
+                        _id: {
+                            year: { $year: `$${colombName}` },
+                            month: { $month: `$${colombName}` },
+                            day: { $dayOfMonth: `$${colombName}` },
+                        },
+                        totalBalance: { $sum: "$balance" },
+                        numCount: { $sum: 1 },
+                    },
+                },
+            ];
+
+            // Add additional stages based on the "data.date" value
+            switch (data.date) {
+                case "year":
+                    pipeline.push({ $group: { _id: "$_id.year", totalBalance: { $first: "$totalBalance" }, numCount: { $first: "$numCount" } } });
+                    break;
+                case "month":
+                    pipeline.push({ $match: { "_id.year": data.year } });
+                    break;
+                case "day":
+                    pipeline.push({ $match: { "_id.year": data.year, "_id.month": data.month } });
+                    break;
+                default:
+                    pipeline.push({
+                        $match: {
+                            [colombName]: { $gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+                            "_id.year": data.year,
+                        },
+                    });
+                    break;
+            }
+
+            // Execute the aggregation pipeline
+            const result = await userModel.aggregate(pipeline);
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Error executing aggregation.",
+                    status: false,
+                }
+            }
+
+        } catch (error) {
+            return {
+                message: "Error executing aggregation.",
+                status: false,
+                error
+            } 
         }
 
-        return db.execute(
-            sqlText,
-        );
+        // // updatedAt, createdAt, 
+        // let sqlText = `
+        //     SELECT 
+        //         DATE_FORMAT(updatedAt, '%m/%d/%y') AS updatedAt,
+        //         DATE_FORMAT(createdAt, '%m/%d/%y') AS createdAt,
+        //         SUM(balance) AS totalBalance, 
+        //         COUNT(${colombName}) AS numCount
+        //     FROM users
+        // `;
+        
+        // switch (data.date) {
+        //     case 'year':
+        //         sqlText += ` GROUP BY EXTRACT(YEAR FROM ${colombName});`;
+        //         break;
+        
+        //     case 'month':
+        //         sqlText += ` 
+        //             WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year} 
+        //             GROUP BY EXTRACT(MONTH FROM ${colombName});
+        //         `;
+        //         break;
+        
+        //     case 'day':
+        //         sqlText += ` 
+        //             WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year}
+        //             AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
+        //             GROUP BY EXTRACT(DAY FROM ${colombName});
+        //         `;
+        //         break;
+        
+        //     default:
+        //         // AND EXTRACT(MONTH FROM ${data.colombName}) = ${data.month}
+        //         sqlText += ` 
+        //             WHERE ${colombName} > (curdate() - interval 30 day)
+        //             AND EXTRACT(YEAR FROM ${colombName}) = ${data.year}
+        //             GROUP BY EXTRACT(DAY FROM ${colombName});
+        //         `;
+        //         break;
+        // }
+
+        // return db.execute(
+        //     sqlText,
+        // );
+
     }
 
     // get Payments Report data
-    static getPaymentsReport(data, colombName='createdAt') {
-        const db = this.dbConnect();
+    static async getPaymentsReport(data, colombName='createdAt') {
+        try {
+            // Assuming you have a Mongoose model for the "payment_transactions" collection in MongoDB
 
-        // updatedAt, createdAt, 
-        let sqlText = `
-            SELECT 
-                DATE_FORMAT(updatedAt, '%m/%d/%y') AS updatedAt,
-                DATE_FORMAT(createdAt, '%m/%d/%y') AS createdAt,
-                COUNT(${colombName}) AS numCount, 
-                SUM(amount) as totalAmount
-            FROM payment_transactions
-        `;
+            // Get the relevant parameters from the data object
+            const { date, year, month } = data;
+            const colombName = 'yourColumnName'; // Replace with the actual column name
 
-        switch (data.date) {
-            case 'year':
-                sqlText += ` GROUP BY EXTRACT(YEAR FROM ${colombName});`;
-                break;
-        
-            case 'month':
-                sqlText += ` 
-                    WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year} 
-                    GROUP BY EXTRACT(MONTH FROM ${colombName});
-                `;
-                break;
-        
-            case 'day':
-                sqlText += ` 
-                    WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year}
-                    AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
-                    GROUP BY EXTRACT(DAY FROM ${colombName});
-                `;
-                break;
-        
-            default:
-                // AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
-                sqlText += ` 
-                    WHERE ${colombName} > (curdate() - interval 30 day)
-                    AND EXTRACT(YEAR FROM ${colombName}) = ${data.year}
-                    GROUP BY EXTRACT(DAY FROM ${colombName});
-                `;
-                break;
+            // Create a Mongoose aggregation pipeline
+            const pipeline = [];
+
+            // Match stage based on date criteria
+            if (date === 'year') {
+                pipeline.push({
+                    $match: {
+                        [colombName]: { $exists: true },
+                        createdAt: { $gte: new Date(`${year}-01-01`), $lt: new Date(`${year + 1}-01-01`) }
+                    }
+                });
+            } else if (date === 'month') {
+                pipeline.push({
+                    $match: {
+                        [colombName]: { $exists: true },
+                        createdAt: { $gte: new Date(`${year}-${month}-01`), $lt: new Date(`${year}-${month + 1}-01`) }
+                    }
+                });
+            } else if (date === 'day') {
+                pipeline.push({
+                    $match: {
+                        [colombName]: { $exists: true },
+                        createdAt: { $gte: new Date(`${year}-${month}-${data.day}T00:00:00Z`), $lt: new Date(`${year}-${month}-${data.day + 1}T00:00:00Z`) }
+                    }
+                });
+            } else {
+                // Default case (last 30 days)
+                pipeline.push({
+                    $match: {
+                        [colombName]: { $exists: true },
+                        createdAt: { $gte: new Date(new Date() - 30 * 24 * 60 * 60 * 1000) }
+                    }
+                });
+            }
+
+            // Group stage to calculate aggregated metrics
+            pipeline.push({
+                $group: {
+                    _id: null,
+                    updatedAt: { $first: { $dateToString: { format: '%m/%d/%y', date: '$updatedAt' } } },
+                    createdAt: { $first: { $dateToString: { format: '%m/%d/%y', date: '$createdAt' } } },
+                    numCount: { $sum: 1 },
+                    totalAmount: { $sum: '$amount' }
+                }
+            });
+
+            // Execute the aggregation pipeline
+            const result = await paymentTransactionModel.aggregate(pipeline);
+            if (result) {
+                return result
+            } else {
+                return {
+                    message: "Error executing aggregation.",
+                    status: false,
+                }
+            }
+            
+        } catch (error) {
+            return {
+                message: "Error executing aggregation.",
+                status: false,
+                error
+            }
         }
 
-        return db.execute(
-            sqlText,
-        );
+        
+        // // updatedAt, createdAt, 
+        // let sqlText = `
+        //     SELECT 
+        //         DATE_FORMAT(updatedAt, '%m/%d/%y') AS updatedAt,
+        //         DATE_FORMAT(createdAt, '%m/%d/%y') AS createdAt,
+        //         COUNT(${colombName}) AS numCount, 
+        //         SUM(amount) as totalAmount
+        //     FROM payment_transactions
+        // `;
+
+        // switch (data.date) {
+        //     case 'year':
+        //         sqlText += ` GROUP BY EXTRACT(YEAR FROM ${colombName});`;
+        //         break;
+        
+        //     case 'month':
+        //         sqlText += ` 
+        //             WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year} 
+        //             GROUP BY EXTRACT(MONTH FROM ${colombName});
+        //         `;
+        //         break;
+        
+        //     case 'day':
+        //         sqlText += ` 
+        //             WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year}
+        //             AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
+        //             GROUP BY EXTRACT(DAY FROM ${colombName});
+        //         `;
+        //         break;
+        
+        //     default:
+        //         // AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
+        //         sqlText += ` 
+        //             WHERE ${colombName} > (curdate() - interval 30 day)
+        //             AND EXTRACT(YEAR FROM ${colombName}) = ${data.year}
+        //             GROUP BY EXTRACT(DAY FROM ${colombName});
+        //         `;
+        //         break;
+        // }
+
+        // return db.execute(
+        //     sqlText,
+        // );
+        
     }
 
     // get Orders Report data
-    static getOrdersReport(data, colombName='createdAt') {
-        const db = this.dbConnect();
+    static async getOrdersReport(data, colombName='createdAt') {
+        try {
+            // Assuming you have a Mongoose model for the "orders" collection in MongoDB
 
-        // updateAt, createdAt, 
-        let sqlText = `
-            SELECT 
-                SUM(quantity) AS totalProccessed, 
-                SUM(amount) AS totalAmount, 
-                SUM(costAmount) AS totalCost, 
-                SUM(apiCharge) AS totalSpent, 
-                SUM(profit) AS sumProfit, 
-                DATE_FORMAT(updateAt, '%m/%d/%y') AS updatedAt,
-                DATE_FORMAT(createdAt, '%m/%d/%y') AS createdAt,
-                COUNT(${colombName}) AS numCount, 
-                SUM(apiCharge - amount) AS totalProfit
-            FROM orders
-        `;
-        
-        switch (data.date) {
-            case 'year':
-                sqlText += ` GROUP BY EXTRACT(YEAR FROM ${colombName});`;
-                break;
-        
-            case 'month':
-                sqlText += ` 
-                    WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year} 
-                    GROUP BY EXTRACT(MONTH FROM ${colombName});
-                `;
-                break;
-        
-            case 'day':
-                sqlText += ` 
-                    WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year}
-                    AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
-                    GROUP BY EXTRACT(DAY FROM ${colombName});
-                `;
-                break;
-        
-            default:
-                // AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
-                sqlText += ` 
-                    WHERE ${colombName} > (curdate() - interval 30 day)
-                    AND EXTRACT(YEAR FROM ${colombName}) = ${data.year}
-                    GROUP BY EXTRACT(DAY FROM ${colombName});
-                `;
+            // Get the relevant parameters from the data object
+            const { date, year, month } = data;
+            const colombName = 'yourColumnName'; // Replace with the actual column name
 
-                break;
-        }
+            // Create a Mongoose aggregation pipeline
+            const pipeline = [];
 
-        return db.execute(
-            sqlText,
-        );
-    }
-
-    // static deleteApiProvider(data) {
-    //     return db.execute(
-    //         `DELETE FROM API_Provider WHERE (${data.key}) = ${data.keyValue}`,
-    //         [ data.value ]
-    //     )
-    // };
-
-    static multipleUpdate(data, tableName, condition="AND") {
-        const db = this.dbConnect();
-
-        let sqlText = `UPDATE ${tableName} SET `
-
-        for (let i = 0; i < data.colombName.length; i++) {
-            const element = data.colombName[i];
-
-            if (i === 0) {
-                sqlText += `${element} = ?`;
+            // Match stage based on date criteria
+            if (date === 'year') {
+                pipeline.push({
+                    $match: {
+                        [colombName]: { $exists: true }, // Adjust this condition as needed
+                        createdAt: { $gte: new Date(`${year}-01-01`), $lt: new Date(`${year + 1}-01-01`) }
+                    }
+                });
+            } else if (date === 'month') {
+                pipeline.push({
+                    $match: {
+                        [colombName]: { $exists: true }, // Adjust this condition as needed
+                        createdAt: { $gte: new Date(`${year}-${month}-01`), $lt: new Date(`${year}-${month + 1}-01`) }
+                    }
+                });
+            } else if (date === 'day') {
+                pipeline.push({
+                    $match: {
+                        [colombName]: { $exists: true }, // Adjust this condition as needed
+                        createdAt: { $gte: new Date(`${year}-${month}-${data.day}T00:00:00Z`), $lt: new Date(`${year}-${month}-${data.day + 1}T00:00:00Z`) }
+                    }
+                });
             } else {
-                sqlText += `, ${element} = ?`;
+                // Default case (last 30 days)
+                pipeline.push({
+                    $match: {
+                        [colombName]: { $exists: true }, // Adjust this condition as needed
+                        createdAt: { $gte: new Date(new Date() - 30 * 24 * 60 * 60 * 1000) }
+                    }
+                });
+            }
+
+            // Group stage to calculate aggregated metrics
+            pipeline.push({
+                $group: {
+                    _id: null,
+                    totalProcessed: { $sum: '$quantity' },
+                    totalAmount: { $sum: '$amount' },
+                    totalCost: { $sum: '$costAmount' },
+                    totalSpent: { $sum: '$apiCharge' },
+                    sumProfit: { $sum: '$profit' },
+                    updatedAt: { $first: { $dateToString: { format: '%m/%d/%y', date: '$updatedAt' } } },
+                    createdAt: { $first: { $dateToString: { format: '%m/%d/%y', date: '$createdAt' } } },
+                    numCount: { $sum: 1 },
+                    totalProfit: { $sum: { $subtract: ['$apiCharge', '$amount'] } }
+                }
+            });
+
+            // Execute the aggregation pipeline
+            const reult2 = await orderModel.aggregate(pipeline);
+
+            if (reult2) {
+                return reult2;
+            } else {
+                return {
+                    message: "Error executing aggregation.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Error executing aggregation.",
+                status: false,
+                error
             }
         }
 
-        for (let i = 0; i < data.conditionColombName.length; i++) {
-            const conditionName = data.conditionColombName[i];
-            const elconditionValue = data.conditionColombValue[i];
 
-            if (i === 0) {
-                sqlText += ` WHERE ${tableName}.${conditionName} = '${elconditionValue}'`;
-            } else {
-                sqlText += ` ${condition} ${tableName}.${conditionName} =' ${elconditionValue}'`;
-            }
-        }
+        // // updateAt, createdAt, 
+        // let sqlText = `
+        //     SELECT 
+        //         SUM(quantity) AS totalProccessed, 
+        //         SUM(amount) AS totalAmount, 
+        //         SUM(costAmount) AS totalCost, 
+        //         SUM(apiCharge) AS totalSpent, 
+        //         SUM(profit) AS sumProfit, 
+        //         DATE_FORMAT(updateAt, '%m/%d/%y') AS updatedAt,
+        //         DATE_FORMAT(createdAt, '%m/%d/%y') AS createdAt,
+        //         COUNT(${colombName}) AS numCount, 
+        //         SUM(apiCharge - amount) AS totalProfit
+        //     FROM orders
+        // `;
+        
+        // switch (data.date) {
+        //     case 'year':
+        //         sqlText += ` GROUP BY EXTRACT(YEAR FROM ${colombName});`;
+        //         break;
+        
+        //     case 'month':
+        //         sqlText += ` 
+        //             WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year} 
+        //             GROUP BY EXTRACT(MONTH FROM ${colombName});
+        //         `;
+        //         break;
+        
+        //     case 'day':
+        //         sqlText += ` 
+        //             WHERE EXTRACT(YEAR FROM ${colombName}) = ${data.year}
+        //             AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
+        //             GROUP BY EXTRACT(DAY FROM ${colombName});
+        //         `;
+        //         break;
+        
+        //     default:
+        //         // AND EXTRACT(MONTH FROM ${colombName}) = ${data.month}
+        //         sqlText += ` 
+        //             WHERE ${colombName} > (curdate() - interval 30 day)
+        //             AND EXTRACT(YEAR FROM ${colombName}) = ${data.year}
+        //             GROUP BY EXTRACT(DAY FROM ${colombName});
+        //         `;
 
-        return sqlText;
+        //         break;
+        // }
+
+        // return db.execute(
+        //     sqlText,
+        // );
+
     }
-    
+
 }

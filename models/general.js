@@ -9,10 +9,6 @@ import { paymentMethodModel } from "../util/paymentMethod.model.js";
 
 
 export class general {
-    static dbConnect() {
-        return "";
-    };
-
     constructor() { }
     
     // get Active Api Provider
@@ -239,13 +235,6 @@ export class general {
                 error
             }
         }
-
-
-        // let sqlText = this.multipleUpdate(data, "orders", condition);
-        // return db.execute(
-        //     sqlText,
-        //     data.NewColombNameValue
-        // )
     };
 
     // create New Ticket
@@ -316,27 +305,45 @@ export class general {
     };
 
     // update Ticket records on the DB
-    static updateTicket(data, condition="AND") {
-        const db = this.dbConnect();
-
-        let sqlText = this.multipleUpdate(data, "tickets", condition);
-
-        return db.execute(
-            sqlText,
-            data.NewColombNameValue
-        );
+    static async updateTicket(condition, data) {
+        try {
+            const result = await ticketModel.updateMany(condition, data);
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update tickets.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update tickets.",
+                status: false,
+                error
+            }
+        }
     };
 
     // update ticket messages records on the DB
-    static updateTicketMessages(data, condition="AND") {
-        const db = this.dbConnect();
-
-        let sqlText = this.multipleUpdate(data, "ticket_messages", condition);
-
-        return db.execute(
-            sqlText,
-            data.NewColombNameValue
-        );
+    static async updateTicketMessages(condition, data) {
+        try {
+            const result = await ticketMessagesModel.updateMany(condition, data);
+            if (result) {
+                return result;
+            } else {
+                return {
+                    message: "Unable to update ticket messages.",
+                    status: false,
+                }
+            }
+        } catch (error) {
+            return {
+                message: "Unable to update ticket messages.",
+                status: false,
+                error
+            }
+        }
     };
 
     // get Payment Method
@@ -369,9 +376,9 @@ export class general {
     // API section
 
     // get order by orderID
-    static async getOrder(orderID) {
+    static async getOrder(orderId) {
         try {
-            const result = await orderModel.find({ orderID: orderID });
+            const result = await orderModel.find({ orderID: orderId });
 
             if (result) {
                 return result;
@@ -511,34 +518,5 @@ export class general {
         //     [`${status}`]
         // );
     };
-
-    static multipleUpdate(data, tableName, condition) {
-        const db = this.dbConnect();
-
-        let sqlText = `UPDATE ${tableName} SET `
-
-        for (let i = 0; i < data.colombName.length; i++) {
-            const element = data.colombName[i];
-
-            if (i === 0) {
-                sqlText += `${element} = ?`;
-            } else {
-                sqlText += `, ${element} = ?`;
-            }
-        }
-
-        for (let i = 0; i < data.conditionColombName.length; i++) {
-            const conditionName = data.conditionColombName[i];
-            const elconditionValue = data.conditionColombValue[i];
-
-            if (i === 0) {
-                sqlText += ` WHERE ${tableName}.${conditionName} = '${elconditionValue}'`;
-            } else {
-                sqlText += ` ${condition} ${tableName}.${conditionName} =' ${elconditionValue}'`;
-            }
-        }
-
-        return sqlText;
-    }
 }
 	

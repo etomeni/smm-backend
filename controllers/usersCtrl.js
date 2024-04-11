@@ -496,6 +496,12 @@ export const addNewApiProviderCtr = async (req, res, next) => {
         };
 
         const result = await admin.addNewApiProvider(apiProviderDetails);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            }); 
+        }
 
         return res.status(201).json({
             status: 201,
@@ -674,8 +680,18 @@ export const updateApiProviderCtr = async (req, res, next) => {
         // };
 
         const apiProviderDetails = req.body;
+        console.log(apiProviderDetails);
+
+        return res.status(201).json({});
+
 
         const result = await admin.updateApiProvider(apiProviderDetails, "AND");
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            }); 
+        }
 
         return res.status(201).json({
             status: 201,

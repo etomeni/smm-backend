@@ -436,36 +436,4 @@ export class user {
         // );
     };
 
-
-
-
-
-    static multipleUpdate(data, tableName, condition) {
-        const db = this.dbConnect();
-
-        let sqlText = `UPDATE ${tableName} SET `
-
-        for (let i = 0; i < data.colombName.length; i++) {
-            const element = data.colombName[i];
-
-            if (i === 0) {
-                sqlText += `${element} = ?`;
-            } else {
-                sqlText += `, ${element} = ?`;
-            }
-        }
-
-        for (let i = 0; i < data.conditionColombName.length; i++) {
-            const conditionName = data.conditionColombName[i];
-            const elconditionValue = data.conditionColombValue[i];
-
-            if (i === 0) {
-                sqlText += ` WHERE ${tableName}.${conditionName} = '${elconditionValue}'`;
-            } else {
-                sqlText += ` ${condition} ${tableName}.${conditionName} =' ${elconditionValue}'`;
-            }
-        }
-
-        return sqlText;
-    };
 }

@@ -203,8 +203,6 @@ export class services {
         // );
     };
 
-
-
     static async updateMultipleServices(criteria, newService) {
         try {
             const result = await serviceModel.updateMany(criteria, newService);
@@ -223,14 +221,6 @@ export class services {
                 error
             }
         }
-
-
-        // let sqlText = this.multipleUpdate(services, 'OR', 'services');
-
-        // return db.execute(
-        //     `${sqlText}`,
-        //     services.NewColombNameValue
-        // )
     };
     
 }

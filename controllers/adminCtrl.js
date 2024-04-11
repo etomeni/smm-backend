@@ -13,28 +13,44 @@ import { auth, user } from '../models/users.js';
 
 // get dashboard Data Ctr
 export const dashboardDataCtr = async (req, res, next) => {
-    const userID = req.userID;
-    const email = req.email;
-
     try {
+        const userID = req.userID;
+        const email = req.email;
+
         let apiProviderDetails = await general.getActiveApiProvider({tbName: "status" , tbValue: 1});
-        apiProviderDetails = apiProviderDetails[0][0];
+        if (apiProviderDetails && apiProviderDetails.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...apiProviderDetails,
+            });
+        }
+        apiProviderDetails = apiProviderDetails[0];
 
         const apiProviderBalRes = await axios.post(`${apiProviderDetails.url}?key=${apiProviderDetails.apiKey}&action=balance`);
-
-        let data = {
-            colombName: ["balance", "currency"],
-            NewColombNameValue: [`${apiProviderBalRes.data.balance}`, `${apiProviderBalRes.data.currency}`],
-
-            conditionColombName: ["APIproviderID", "id"],
-            conditionColombValue: [`${apiProviderDetails.APIproviderID}`, `${apiProviderDetails.id}`]
-        }
-        // apiProviderDetails.balance = apiProviderBalRes.data.balance;
-        await admin.updateApiProvider(data, "OR");
         
+        const newData = {
+            balance: apiProviderBalRes.data.balance,
+            currency: apiProviderBalRes.data.currency,
+        };
+        const condition1 = {
+            APIproviderID: apiProviderDetails.APIproviderID
+        };
+        const result1 = await admin.updateApiProvider(condition1, newData);
+        if (result1 && result1.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result1,
+            });
+        }
 
         let uzer = await admin.getUserByID(userID);
-        uzer = uzer[0][0];
+        if (uzer && uzer.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...uzer,
+            });
+        }
+        uzer = uzer[0];
 
         let totalUsers;
         if (uzer.role == 'admin') {
@@ -42,35 +58,88 @@ export const dashboardDataCtr = async (req, res, next) => {
         } else {
             totalUsers = await admin.getTotalUserUsers();
         }
+        if (totalUsers && totalUsers.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...totalUsers
+            });
+        }
 
         const apiBalance = await admin.getApiBalance();
+        if (apiBalance && apiBalance.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...apiBalance
+            });
+        }
+
         const totalOrders = await admin.getTotalOrders();
+        if (totalOrders && totalOrders.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...totalOrders
+            });
+        }
+
         const totalProfit = await admin.getTotalProfit();
+        if (totalProfit && totalProfit.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...totalProfit
+            });
+        }
+
         const monthlyProfit = await admin.getMonthlyProfit();
+        if (monthlyProfit && monthlyProfit.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...monthlyProfit
+            });
+        }
+
         const totalPayments = await admin.getTotalPayments();
+        if (totalPayments && totalPayments.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...totalPayments
+            });
+        }
+
         // const totalUsers = await admin.getTotalUsers();
         const totalTickets = await admin.getTotalTickets();
+        if (totalTickets && totalTickets.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...totalTickets
+            });
+        }
 
         const dashboardOrders = await admin.getDashboardOrders();
 
-        for (let i = 0; i < dashboardOrders[0].length; i++) {
-            const service = await services.getServiceByID(dashboardOrders[0][i].serviceID);
+        for (let i = 0; i < dashboardOrders.length; i++) {
+            const service = await services.getServiceByID(dashboardOrders[i].serviceID);
+            if (service && service.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...service
+                });
+            }
 
-            dashboardOrders[0][i].serviceCategory = service[0][0].serviceCategory;
+            dashboardOrders[i].serviceCategory = service[0].serviceCategory;
         }
 
         return res.status(201).json({
             status: 201,
             result: {
-                apiBalance: apiBalance[0][0].apiBalance,
-                totalOrders: totalOrders[0][0].totalOrders,
-                totalProfit: totalProfit[0][0].totalProfit,
-                monthlyProfit: monthlyProfit[0][0].monthlyProfit,
-                totalPayments: totalPayments[0][0].totalPayments,
-                totalUsers: totalUsers[0][0].totalUsers,
-                totalTickets: totalTickets[0][0].totalTickets
+                apiBalance: apiBalance[0].balance,
+                totalOrders: totalOrders,
+                totalProfit: totalProfit,
+                monthlyProfit: monthlyProfit,
+                totalPayments: totalPayments,
+                totalUsers: totalUsers,
+                totalTickets: totalTickets
             },
-            orders: dashboardOrders[0],
+            orders: dashboardOrders,
         });
     } catch (error) {
         if (!error.statusCode) {
@@ -82,15 +151,18 @@ export const dashboardDataCtr = async (req, res, next) => {
 
 // get All Active Ticket Ctr
 export const getAllActiveTicketCtr = async (req, res, next) => {
-    // const userID = req.userID;
-    // const email = req.email;
-
     try {
         const allActiveTicket = await admin.getAllActiveTicket();
+        if (allActiveTicket && allActiveTicket.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...allActiveTicket,
+            });
+        }
 
         return res.status(201).json({
             status: 201,
-            ticket: allActiveTicket[0],
+            ticket: allActiveTicket,
         });
     } catch (error) {
         if (!error.statusCode) {
@@ -120,15 +192,15 @@ export const newTicketMessageCtr = async (req, res, next) => {
         error.msg = "sent data validation error";
         next(error);
     }
-
-    const message = req.body.message;
-    const ticketID = req.body.ticketID;
-    let file = '';
-
-    const userID = req.userID;
-    // const email = req.email;
-
+    
     try {
+        const message = req.body.message;
+        const ticketID = req.body.ticketID;
+        let file = '';
+    
+        const userID = req.userID;
+        // const email = req.email;
+
         if (req.files) {
             const attachedFile = req.files.attachedFile;
     
@@ -160,7 +232,13 @@ export const newTicketMessageCtr = async (req, res, next) => {
             attachedFile: file
         };
 
-        await general.ticket_messages(data2send);
+        const result = await general.ticket_messages(data2send);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result,
+            });
+        }
 
         return res.status(201).json({
             status: 201,
@@ -177,18 +255,35 @@ export const newTicketMessageCtr = async (req, res, next) => {
 
 // get Ticket Message
 export const getTicketMessageCtr = async (req, res, next) => {
-    // const userID = req.userID;
-    const ticketID = req.body.ticketID;
-
     try {
+        // const userID = req.userID;
+        const ticketID = req.body.ticketID;
+
         let ticket = await admin.getTicket({ticketID});
-        ticket = ticket[0][0];
+        if (ticket && ticket.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...ticket,
+            });
+        }
+        ticket = ticket[0];
 
         let ticketUser = await admin.getUserByID(ticket.userID);
-        ticketUser = ticketUser[0][0];
+        if (ticketUser && ticketUser.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...ticketUser,
+            });
+        }
+        ticketUser = ticketUser[0];
 
         let ticketMessages = await admin.getTicketMessage({ticketID});
-        ticketMessages = ticketMessages[0];
+        if (ticketMessages && ticketMessages.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...ticketMessages,
+            });
+        }
 
         return res.status(201).json({
             status: 201,
@@ -207,11 +302,14 @@ export const getTicketMessageCtr = async (req, res, next) => {
 
 // Close Ticket
 export const closeTicketCtr = async (req, res, next) => {
-    // const userID = req.userID;
-    // const ticketID = req.body.ticketID;
-
     try {
-        await admin.closeTicket(req.body.ticketID);
+        const result = await admin.closeTicket(req.body.ticketID);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result,
+            });
+        }
 
         return res.status(201).json({
             statusCode: 201,
@@ -227,12 +325,17 @@ export const closeTicketCtr = async (req, res, next) => {
 
 // get All Users
 export const getAllUsersCtr = async (req, res, next) => {
-    const userID = req.userID;
-    // const ticketID = req.body.ticketID;
-
     try {
+        const userID = req.userID;
+        // const ticketID = req.body.ticketID;
+
         let uzer = await admin.getUserByID(userID);
-        uzer = uzer[0][0];
+        if (uzer && uzer.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...uzer,
+            });
+        }
 
         let users;
         if (uzer.role == 'admin') {
@@ -240,10 +343,16 @@ export const getAllUsersCtr = async (req, res, next) => {
         } else {
             users = await admin.getAllUserUsers();
         }
+        if (users && users.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...users,
+            });
+        }
 
         return res.status(201).json({
             statusCode: 201,
-            users: users[0],
+            users: users,
             message: 'successful!'
         });
     } catch (error) {
@@ -256,15 +365,21 @@ export const getAllUsersCtr = async (req, res, next) => {
 
 // get User ID
 export const getUserCtr = async (req, res, next) => {
-    // const userID = req.userID;
-    const userID = req.body.userID;
-
     try {
-        let user = await admin.getUserByID(userID);
+        // const userID = req.userID;
+        const userID = req.body.userID;
+
+        const user = await admin.getUserByID(userID);
+        if (user && user.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...user,
+            });
+        }
 
         return res.status(201).json({
             statusCode: 201,
-            user: user[0][0],
+            user: user,
             message: 'successful!'
         });
     } catch (error) {
@@ -277,13 +392,14 @@ export const getUserCtr = async (req, res, next) => {
 
 // Update User's Profile
 export const updateUserProfileCtr = async (req, res, next) => {
-    const userID = req.body.userID;
-    const formKeys = req.body.formKeys;
-    const formValues = req.body.formValues;
-
+    
     try {
+        const userID = req.body.userID;
+        const formKeys = req.body.formKeys;
+        const formValues = req.body.formValues;
+
         const user = await auth.findByID(userID);
-        if (user[0].length !== 1) {
+        if (user && user.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
             error.message = "unable to verify user's ID, please refreash and try again!!!";
@@ -302,16 +418,32 @@ export const updateUserProfileCtr = async (req, res, next) => {
             conditionColombName: ['userID'],
             conditionColombValue: [`${userID}`]
         };
-        const updatedUser = await auth.updateUser(profileUpdateDetails);
+        console.log(profileUpdateDetails);
+        return res.status(500).json({message: "testing"});
 
-        console.log(updatedUser);
+        const newData = {
+
+        };
+        const updatedUser = await auth.updateUser(userID, newData);
+        if (updatedUser && updatedUser.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...updatedUser,
+            });
+        }
 
         const newUserData = await auth.findByID(userID);
+        if (newUserData && newUserData.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...newUserData,
+            });
+        }
 
         return res.status(201).json({
             status: 201,
             message: 'Profile details updated successfully!',
-            user: newUserData[0][0],
+            user: newUserData,
         });
     } catch (error) {
         if (!error.statusCode) {
@@ -323,12 +455,16 @@ export const updateUserProfileCtr = async (req, res, next) => {
 
 // get users payment transactions
 export const getUsersPaymentTransactionsCtr = async (req, res, next) => {
-    const userID = req.body.userID;
-    
     try {
+        const userID = req.body.userID;
         // sned send an object with userID property
-        let payments = await user.getUserPayments({userID});
-        payments = payments[0];
+        const payments = await user.getUserPayments({userID});
+        if (payments && payments.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...payments,
+            });
+        }
 
         return res.status(201).json({
             status: 201,
@@ -345,11 +481,16 @@ export const getUsersPaymentTransactionsCtr = async (req, res, next) => {
 
 // get User Orders
 export const getUserOrdersCtr = async (req, res, next) => {
-    const userID = req.body.userID;
-
     try {
-        let order = await user.getUserOrders({userID});
-        order = order[0];
+        const userID = req.body.userID;
+
+        const order = await user.getUserOrders({userID});
+        if (order && order.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...order,
+            });
+        }
 
         for (let i = 0; i < order.length; i++) {
             const element = order[i];
@@ -359,15 +500,15 @@ export const getUserOrdersCtr = async (req, res, next) => {
                 value: element.serviceID
             };
 
-            await services.getSpecificService(data).then(
-                (res) => {
-                    let serviceData = res[0][0];
-                    order[i].serviceCategory = serviceData.serviceCategory;
-                },
-                (err) => {
-                    console.log(err);
-                }
-            );
+            const result1 = await services.getSpecificService(data);
+            if (result1 && result1.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...result1,
+                });
+            }
+            let serviceData = result1[0];
+            order[i].serviceCategory = serviceData.serviceCategory;
         }
 
         return res.status(201).json({
@@ -385,11 +526,14 @@ export const getUserOrdersCtr = async (req, res, next) => {
 
 // get All Orders
 export const getAllOrdersCtr = async (req, res, next) => {
-    // const userID = req.body.userID;
-
     try {
-        let order = await admin.getAllOrders();
-        order = order[0];
+        const order = await admin.getAllOrders();
+        if (order && order.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...order,
+            });
+        }
 
         for (let i = 0; i < order.length; i++) {
             const element = order[i];
@@ -399,27 +543,28 @@ export const getAllOrdersCtr = async (req, res, next) => {
                 value: element.serviceID
             };
 
-            await services.getSpecificService(data).then(
-                (res) => {
-                    let serviceData = res[0][0];
-                    order[i].serviceCategory = serviceData.serviceCategory;
-                },
-                (err) => {
-                    console.log(err);
-                }
-            );
+            const result1 = await services.getSpecificService(data);
+            if (result1 && result1.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...result1,
+                });
+            }
+            let serviceData = result1[0];
+            order[i].serviceCategory = serviceData.serviceCategory;
+            
 
-            await admin.getUserByID(`${element.userID}`).then(
-                (res) => {
-                    let user = res[0][0];
-                    order[i].username = user.username;
-                    order[i].email = user.email;
-                    order[i].name = user.name;
-                },
-                (err) => {
-                    console.log(err);
-                }
-            );
+            const result2 = await admin.getUserByID(`${element.userID}`);
+            if (result2 && result2.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...result2,
+                });
+            }
+            const user = result2[0];
+            order[i].username = user.username;
+            order[i].email = user.email;
+            order[i].name = user.name;
         }
 
         return res.status(201).json({
@@ -435,15 +580,15 @@ export const getAllOrdersCtr = async (req, res, next) => {
     }
 }
 
-// upgrade User's Balance
+// upgrade User's Balance 
 export const balanceUpgradeCtr = async (req, res, next) => {
-    const userID = req.body.userID;
-    const amount = req.body.amount;
-    const username = req.body.username;
-
     try {
+        const userID = req.body.userID;
+        const amount = req.body.amount;
+        const username = req.body.username;
+
         const user = await admin.getUserByID(`${userID}`);
-        if (user[0].length !== 1) {
+        if (user && user.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
             error.message = "unable to verify user's ID, please refreash and try again!!!";
@@ -455,22 +600,28 @@ export const balanceUpgradeCtr = async (req, res, next) => {
             });
         };
 
-        if (user[0][0].username != username) {
+        if (user[0].username != username) {
             return res.status(401).json({
                 statusCode: 401,
                 message: "The Entered username is incorrect!"
             });
         };
 
-        const newBal = Number(user[0][0].balance) + Number(amount);
+        const newBal = Number(user[0].balance) + Number(amount);
         const result = await admin.deduct_upgradeUserBalance({userID, balance: newBal });
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            });
+        }
 
-        const Cuser = await admin.getUserByID(`${userID}`);
-        delete Cuser[0][0].password;
+        // const Cuser = await admin.getUserByID(`${userID}`);
+        delete user[0].password;
 
         return res.status(201).json({
             status: 201,
-            user: Cuser[0][0],
+            user: user[0],
             message: 'successfully!'
         });
     } catch (error) {
@@ -483,13 +634,13 @@ export const balanceUpgradeCtr = async (req, res, next) => {
 
 // deduct user's Balance 
 export const balanceDeductCtr = async (req, res, next) => {
-    const userID = req.body.userID;
-    const amount = req.body.amount;
-    const username = req.body.username;
-
     try {
+        const userID = req.body.userID;
+        const amount = req.body.amount;
+        const username = req.body.username;
+
         const user = await admin.getUserByID(`${userID}`);
-        if (user[0].length !== 1) {
+        if (user && user.status == false) {
             const error = new Error('A user with this ID could not be found!');
             error.statusCode = 401;
             error.message = "unable to verify user's ID, please refreash and try again!!!";
@@ -501,22 +652,28 @@ export const balanceDeductCtr = async (req, res, next) => {
             });
         };
 
-        if (user[0][0].username != username) {
+        if (user[0].username != username) {
             return res.status(401).json({
                 statusCode: 401,
                 message: "The Entered username is incorrect!"
             });
         };
 
-        const newBal = Number(user[0][0].balance) - Number(amount);
+        const newBal = Number(user[0].balance) - Number(amount);
         const result = await admin.deduct_upgradeUserBalance({userID, balance: newBal });
+        if (result && result.status == false) {
+            return res.status(201).json({
+                status: 201,
+                ...result
+            });
+        }
 
-        const Cuser = await admin.getUserByID(`${userID}`);
-        delete Cuser[0][0].password;
+        // const Cuser = await admin.getUserByID(`${userID}`);
+        delete user[0].password;
 
         return res.status(201).json({
             status: 201,
-            user: Cuser[0][0],
+            user: user[0],
             message: 'successfully!'
         });
     } catch (error) {
@@ -529,17 +686,26 @@ export const balanceDeductCtr = async (req, res, next) => {
 
 // get All Payments
 export const getAllPaymentsCtr = async (req, res, next) => {
-    // const userID = req.body.userID;
-
     try {
-        let Payments = await admin.getAllPayments();
-        Payments = Payments[0];
+        const Payments = await admin.getAllPayments();
+        if (Payments && Payments.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...Payments
+            });
+        }
 
         for (let i = 0; i < Payments.length; i++) {
             const element = Payments[i];
 
-            let uzer = await  admin.getUserByID(`${element.userID}`);
-            uzer = uzer[0][0];
+            let uzer = await admin.getUserByID(`${element.userID}`);
+            if (uzer && uzer.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...uzer
+                });
+            }
+            uzer = uzer[0];
             Payments[i].username = uzer.username;
             Payments[i].email = uzer.email;
             Payments[i].name = uzer.name;
@@ -564,13 +730,18 @@ export const getAllPaymentsCtr = async (req, res, next) => {
 
 // delete Service
 export const deleteServiceCtr = async (req, res, next) => {
-    const serviceIDs = req.body;
-
     try {
+        const serviceIDs = req.body;
         const result = [];
         
         for (let i = 0; i < serviceIDs.length; i++) {
-            let serviceIDresult = await services.deleteServiceByID(serviceIDs[i]);
+            const serviceIDresult = await services.deleteServiceByID(serviceIDs[i]);
+            if (serviceIDresult && serviceIDresult.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...serviceIDresult
+                });
+            }
 
             result.push(serviceIDresult);
         }
@@ -696,9 +867,14 @@ export const getAllProvidersCtr = async (req, res, next) => {
 
 // change Provider Status
 export const changeProviderStatusCtr = async (req, res, next) => {
-
     try {
-        await admin.changeProviderStatus(req.body);
+        const result = await admin.changeProviderStatus(req.body);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            }); 
+        }
 
         return res.status(201).json({
             status: 201,
@@ -714,9 +890,14 @@ export const changeProviderStatusCtr = async (req, res, next) => {
 
 // delete API Provider
 export const deleteApiProviderCtr = async (req, res, next) => {
-
     try {
-        await admin.deleteApiProvider(req.body.id);
+        const result = await admin.deleteApiProvider(req.body.id);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            }); 
+        }
 
         return res.status(201).json({
             status: 201,
@@ -732,13 +913,18 @@ export const deleteApiProviderCtr = async (req, res, next) => {
 
 // get specific Provider
 export const getQueriedProviderCtr = async (req, res, next) => {
-
     try {
         const provider = await admin.getQueriedProvider(req.body.id);
+        if (provider && provider.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...provider
+            }); 
+        }
 
         return res.status(201).json({
             status: 201,
-            provider: provider[0][0],
+            provider: provider[0],
             message: `successful!`
         });
     } catch (error) {
@@ -769,13 +955,13 @@ export const addNewApiProviderCtr = async (req, res, next) => {
         next(error);
     }
 
-    const uAPIproviderID = () => {
-        const val1 = Date.now().toString(36);
-        const val2 = Math.random().toString(36).substring(2);
-        return val1 + val2;
-    }
-
     try {
+        const uAPIproviderID = () => {
+            const val1 = Date.now().toString(36);
+            const val2 = Math.random().toString(36).substring(2);
+            return val1 + val2;
+        }
+
         const apiProviderDetails = {
             APIproviderID: uAPIproviderID(),
             userID: req.userID || req.body.userID,
@@ -788,7 +974,13 @@ export const addNewApiProviderCtr = async (req, res, next) => {
             status: req.body.status
         };
 
-        await admin.addNewApiProvider(apiProviderDetails);
+        const result = await admin.addNewApiProvider(apiProviderDetails);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            }); 
+        }
 
         return res.status(201).json({
             status: 201,
@@ -825,21 +1017,26 @@ export const editApiProviderCtr = async (req, res, next) => {
     }
 
     try {
-        // console.log(req.body);
+        const condition = {
+            APIproviderID: req.body.APIproviderID
+        }
 
-        const apiProviderDetails = {
-            condition: "OR",
-            tableName: "API_Provider",
-            colombName: ["name", "url", "apiKey", "currency", "description", "status"],
-            NewColombNameValue: [req.body.name, req.body.url, req.body.apiKey, req.body.currency, req.body.description, req.body.status],
+        const newData = {
+            name: req.body.name,
+            url: req.body.url,
+            apiKey: req.body.apiKey,
+            currency: req.body.currency,
+            description: req.body.description,
+            status: req.body.status,
+        }
 
-            conditionColombName: ["id", "APIproviderID"],
-            conditionColombValue: [req.body.id, req.body.APIproviderID]
-        };
-
-        // const apiProviderDetails = req.body;
-
-        const result = await admin.updateApiProvider(apiProviderDetails, "OR");
+        const result = await admin.updateApiProvider(condition, newData);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            });
+        }
 
         return res.status(201).json({
             status: 201,
@@ -856,15 +1053,14 @@ export const editApiProviderCtr = async (req, res, next) => {
 
 // get user by username or email
 export const searchUsernameOrEmailCtr = async (req, res, next) => {
-
     try {
         const formData = req.body;
     
         const userExist = await auth.find(formData.usernameEmail);
-        if (userExist[0].length > 0) {
+        if (userExist && userExist.status != false) {
             return res.status(201).json({
                 status: 201,
-                user: userExist[0][0],
+                user: userExist,
                 message: `success`,
             });
         } else {
@@ -884,9 +1080,14 @@ export const searchUsernameOrEmailCtr = async (req, res, next) => {
 
 // change User Role
 export const changeUserRoleCtr = async (req, res, next) => {
-
     try {
-        await admin.updateUserRole({role: req.body.role, userID: req.body.userID})
+        const result = await admin.updateUserRole({role: req.body.role, userID: req.body.userID});
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            });
+        }
     
         return res.status(201).json({
             status: 201,
@@ -902,11 +1103,16 @@ export const changeUserRoleCtr = async (req, res, next) => {
 
 // change the price for all service
 export const servicePriceChangeCtr = async (req, res, next) => {
-    const percentageIncrease = req.body.percentageIncrease;
-
     try {
-        let allServices = await services.getAllServices();
-        allServices = allServices[0];
+        const percentageIncrease = req.body.percentageIncrease;
+
+        const allServices = await services.getAllServices();
+        if (allServices && allServices.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...allServices
+            });
+        }
 
         for (let i = 0; i < allServices.length; i++) {
             const service = allServices[i];
@@ -915,7 +1121,13 @@ export const servicePriceChangeCtr = async (req, res, next) => {
             let price = service.providerRate + (service.providerRate * incRate);
             const newPrice = Math.round((price + Number.EPSILON) * 100) / 100;
 
-            await services.updateService({name: 'resellRate', value: newPrice, key: 'serviceID', keyValue: service.serviceID});
+            const result = await services.updateService({name: 'resellRate', value: newPrice, key: 'serviceID', keyValue: service.serviceID});
+            if (result && result.status == false) {
+                return res.status(500).json({
+                    status: 500,
+                    ...result
+                });
+            }
         }
 
         return res.status(201).json({
@@ -935,10 +1147,16 @@ export const getAllPaymentMethodsCtr = async (req, res, next) => {
 
     try {
         const paymentMethods = await admin.getAllPaymentMethods();
+        if (paymentMethods && paymentMethods.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...paymentMethods
+            });
+        }
 
         return res.status(201).json({
             status: 201,
-            paymentMethods: paymentMethods[0],
+            paymentMethods: paymentMethods,
             message: `successful!`
         });
     } catch (error) {
@@ -954,10 +1172,16 @@ export const getQueriedPaymentMethodCtr = async (req, res, next) => {
 
     try {
         const paymentMethod = await admin.getQueriedPaymentMethod(req.body.paymentMethodID);
+        if (paymentMethod && paymentMethod.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...paymentMethod
+            });
+        }
 
         return res.status(201).json({
             status: 201,
-            paymentMethod: paymentMethod[0][0],
+            paymentMethod: paymentMethod[0],
             message: `successful!`
         });
     } catch (error) {
@@ -1022,7 +1246,7 @@ export const addPaymentMethodCtr = async (req, res, next) => {
             paymentMethod: paymentMethodDetails,
             message: 'New payment Method was added successfully!'
         });
-    } catch (error) {
+    } catch (error) { 
         if (!error.statusCode) {
             error.statusCode = 500;
         }
@@ -1062,7 +1286,26 @@ export const editPaymentMethodCtr = async (req, res, next) => {
             conditionColombValue: [req.body.id, req.body.paymentMethodID]
         };
 
-        await admin.updatePaymentMethod(paymentMethodDetails, "OR");
+        const condition = {
+            paymentMethodID: req.body.paymentMethodID
+        };
+
+        const newData = {
+            name: req.body.name,
+            currency: req.body.currency,
+            exchangeRate: req.body.exchangeRate,
+            data: req.body.data,
+            status: req.body.status,
+        }
+
+        const result = await admin.updatePaymentMethod(newData, condition);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            });
+        }
+
 
         return res.status(201).json({
             status: 201,
@@ -1079,9 +1322,14 @@ export const editPaymentMethodCtr = async (req, res, next) => {
 
 // delete Payment Method
 export const deletePaymentMethodCtr = async (req, res, next) => {
-
     try {
-        await admin.deletePaymentMethod(req.body.id);
+        const result = await admin.deletePaymentMethod(req.body.id);
+        if (result && result.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...result
+            }); 
+        }
 
         return res.status(201).json({
             status: 201,
@@ -1097,10 +1345,8 @@ export const deletePaymentMethodCtr = async (req, res, next) => {
 
 // get Report Data
 export const getReportDataCtr = async (req, res, next) => {
-
-    const sort = req.body.sort;
-
     try {
+        const sort = req.body.sort;
         let users;
         let orders;
         let payments;
@@ -1114,6 +1360,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (users && users.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...users
+                    });
+                }
         
                 // total Orders number count by months
                 orders = await admin.getOrdersReport({
@@ -1122,6 +1374,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (orders && orders.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...orders
+                    });
+                }
 
                 // total payment_transactions number count by months
                 payments = await admin.getPaymentsReport({
@@ -1130,6 +1388,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (payments && payments.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...payments
+                    });
+                }
             
                 break;
         
@@ -1141,6 +1405,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (users && users.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...users
+                    });
+                }
         
                 // total Orders number count by months
                 orders = await admin.getOrdersReport({
@@ -1149,6 +1419,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (orders && orders.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...orders
+                    });
+                }
 
                 // total payment_transactions number count by months
                 payments = await admin.getPaymentsReport({
@@ -1157,6 +1433,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (payments && payments.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...payments
+                    });
+                }
             
                 break;
         
@@ -1168,6 +1450,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (users && users.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...users
+                    });
+                }
         
                 // total Orders number count by day
                 orders = await admin.getOrdersReport({
@@ -1176,6 +1464,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (orders && orders.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...orders
+                    });
+                }
 
                 // total payment_transactions number count by day
                 payments = await admin.getPaymentsReport({
@@ -1184,6 +1478,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (payments && payments.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...payments
+                    });
+                }
                 
                 break;
         
@@ -1195,6 +1495,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (users && users.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...users
+                    });
+                }
         
                 // total Orders number count by day
                 orders = await admin.getOrdersReport({
@@ -1203,6 +1509,12 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (orders && orders.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...orders
+                    });
+                }
 
                 // total payment_transactions number count by day
                 payments = await admin.getPaymentsReport({
@@ -1211,15 +1523,26 @@ export const getReportDataCtr = async (req, res, next) => {
                     year: req.body.year || new Date().getFullYear(),
                     month: req.body.month || new Date().getMonth()+1
                 });
+                if (payments && payments.status == false) {
+                    return res.status(500).json({
+                        status: 500,
+                        ...payments
+                    });
+                }
 
                 break;
         }
 
-        let years = await admin.getReportYears();
-
+        const years = await admin.getReportYears();
+        if (years && years.status == false) {
+            return res.status(500).json({
+                status: 500,
+                ...years
+            });
+        }
         return res.status(201).json({
             status: 201,
-            years: years[0],
+            years: years,
             orders: orders[0],
             users: users[0],
             payments: payments[0],

@@ -6,8 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "npm run dev",
-    "dev": "nodemon index.js",
-    "build": "NODE_ENV=production node index.js"
+    "dev": "node --watch index.js",
+    "build": "NODE_ENV=production node index.js",
+    "deploy": "node index.js"
   },
   "keywords": [],
   "author": "https://github.com/etomeni",
@@ -38,8 +39,5 @@
     "nodemailer": "^6.7.5",
     "uuid": "^8.3.2",
     "validator": "^13.11.0"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.15"
   }
 }

@@ -33,7 +33,7 @@ export class admin {
         //     `SELECT API_Provider.balance AS apiBalance FROM API_Provider WHERE  API_Provider.status = 1;`,
         // )
     };
-
+    
     static async getTotalOrders() {
         try {
             const result = await orderModel.countDocuments({}).exec();

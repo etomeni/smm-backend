@@ -30,7 +30,7 @@ const paymentTransactionSchema = mongoose.Schema(
         status: {
             type: String,
             required: [true, "Please enter the user apiKey."],
-            enum: ['Failed', 'Pending', 'Processing', 'Success'], 
+            // enum: ['Failed', 'Pending', 'Processing', 'successful'], 
         },
 
     }, 

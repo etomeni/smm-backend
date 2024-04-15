@@ -143,7 +143,8 @@ router.post(
     [
         authMiddleware,
         body('userID').trim().not().isEmpty(),
-        body('serviceDBid').isNumeric().not().isEmpty(),
+        // body('serviceDBid').isNumeric().not().isEmpty(),
+        body('serviceDBid').trim().not().isEmpty(),
         body('serviceID').not().isEmpty(),
 
         body('type').trim().not().isEmpty(),

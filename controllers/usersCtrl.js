@@ -37,7 +37,8 @@ export const placeOrderCtr = async (req, res, next) => {
         if (Cuser && Cuser.status == false) {
             return res.status(500).json({
                 status: 500,
-                message: Cuser.message || "unable to get user data"
+                message: Cuser.message || "unable to get user data",
+                ...Cuser
             });
         }
         
@@ -48,24 +49,6 @@ export const placeOrderCtr = async (req, res, next) => {
             });
         }
 
-        // let CuserDetails;
-        // if (Cuser[0].length !== 1) {
-        //     return res.status(401).json({
-        //         status: 401,
-        //         error: Cuser,
-        //         message: `unable to get user data`
-        //     });
-        // } else {
-        //     CuserDetails = Cuser[0][0];
-    
-        //     if (CuserDetails.balance < req.body.amount) {
-        //         return res.status(207).json({
-        //             status: 207,
-        //             message: "Insufficient Funds! add funds to your account and try again."
-        //         });
-        //     }
-        // }
-    
         let servicexx;
         // get the service and check for errors
         try {
@@ -147,15 +130,16 @@ export const placeOrderCtr = async (req, res, next) => {
             });
         }
 
-        if (apiProvider.length) {
-            apiProviderDetails = apiProvider[0];
-        }
-    
+        const apiProviderDetails = apiProvider.length ? apiProvider[0]._doc : apiProvider;
+
         // check api provider price
         try {
-            const apiProviderServices = await axios.post(`${apiProviderDetails.url}?key=${apiProviderDetails.apiKey}&action=services`);
+            const url = `${apiProviderDetails.url}?key=${apiProviderDetails.apiKey}&action=services`;
+            const apiProviderServices = await axios.post(url);
     
-            let service = apiProviderServices.data.find(obj => obj.service == req.body.serviceID);
+            // console.log(apiProviderServices);
+
+            const service = apiProviderServices.data.find(obj => obj.service == req.body.serviceID);
 
             if(service) {
                 if (service.rate > servicexx.resellRate || service.rate > servicexx.providerRate) {
@@ -191,7 +175,7 @@ export const placeOrderCtr = async (req, res, next) => {
             return res.status(500).json({
                 status: 500,
                 message: "an error occured!",
-                error
+                ...error
             });
         }
 
@@ -214,7 +198,6 @@ export const placeOrderCtr = async (req, res, next) => {
 
         } catch (error) {
             err = error;
-    
             status = "Pending";
             note.push("unable to check and update " + apiProviderDetails.name + " account balance");
         };
@@ -224,17 +207,9 @@ export const placeOrderCtr = async (req, res, next) => {
             status = "Pending";
             note.push("API provider @ " + apiProviderDetails.name + " Insufficient Funds");
         }
-    
+
         // DEDUCT the service cost from the user balance
         try {
-            let data = {
-                colombName: ["balance"],
-                NewColombNameValue: [`${CuserDetails.balance - req.body.amount}`],
-        
-                conditionColombName: ["userID", "id"],
-                conditionColombValue: [req.body.userID, CuserDetails.id]
-            };
-
             const condition = { userID: req.body.userID };
             const newData = { balance: Cuser.balance - req.body.amount };
 
@@ -260,12 +235,13 @@ export const placeOrderCtr = async (req, res, next) => {
         //     const val2 = Math.random().toString(36).substring(2);
         //     return val1 + val2;
         // }
+
         let result;
         try {
             const ordersDetails = {
                 // orderID: uOrderID(),
                 orderID: Date.now(),
-                userID: req.body.userID,
+                userID: Cuser.userID,
                 serviceID: req.body.serviceID,
                 // id: req.body.serviceDBid,
                 type: req.body.type,
@@ -287,8 +263,8 @@ export const placeOrderCtr = async (req, res, next) => {
             if (result && result.status == false) {
                 return res.status(500).json({
                     status: 500,
-                    ...result,
-                    message: "unable to place order!"
+                    ...result
+                    // message: "unable to place order!"
                 });
             }
         } catch (error) {
@@ -312,24 +288,17 @@ export const placeOrderCtr = async (req, res, next) => {
         try {
             let apiText = `${apiProviderDetails.url}?key=${apiProviderDetails.apiKey}&action=add&service=${req.body.serviceID}&link=${req.body.link}&quantity=${req.body.quantity}`;
             const response = await axios.post(apiText);
-    
             // check if the response from the api provider has 
             if (response.data.error) {
                 err = response.data.error;
                 status = "Pending";
-                note.push("unable to place order through the API at " + apiProviderDetails.name + " because of this error "+err);
-                // let data = {
-                //     colombName: ["note", "status"],
-                //     NewColombNameValue: [`${note}`, `${status}`],
-    
-                //     conditionColombName: ["id"],
-                //     conditionColombValue: [`${result[0].insertId}`]
-                // };
+                note.push("unable to place order through the API at " + apiProviderDetails.name + " because of this error: "+err);
 
                 const newResult = await general.updateOrder(result.orderID, {note, status});
-                if (newResult && newResult.status == false) {
+                if (newResult && newResult.errz) {
                     return res.status(500).json({
                         status: 500,
+                        note: note,
                         ...newResult,
                     });
                 }
@@ -337,24 +306,17 @@ export const placeOrderCtr = async (req, res, next) => {
                 return res.status(202).json({
                     status: 202,
                     error: err,
+                    note: note,
                     message: `service order could not be placed to the Provide (${apiProviderDetails.name}) through the API`
                 });
             }
     
             if (response.data.order) {
-                // let data = {
-                //     colombName: ["providerOrderID"],
-                //     NewColombNameValue: [`${response.data.order}`],
-        
-                //     conditionColombName: ["id"],
-                //     conditionColombValue: [`${result[0].insertId}`]
-                // };
-                // await general.updateOrder(data, "AND");
-
                 const newResult = await general.updateOrder(result.orderID, {providerOrderID: response.data.order});
-                if (newResult && newResult.status == false) {
+                if (newResult && newResult.errz) {
                     return res.status(500).json({
                         status: 500,
+                        note: note,
                         ...newResult,
                     });
                 }
@@ -380,9 +342,10 @@ export const placeOrderCtr = async (req, res, next) => {
                     remains: orderIdRes.data.remains,
                 }
                 const newResult = await general.updateOrder(result.orderID, data2);
-                if (newResult && newResult.status == false) {
+                if (newResult && newResult.errz) {
                     return res.status(500).json({
                         status: 500,
+                        note: note,
                         ...newResult,
                     });
                 }
@@ -423,18 +386,12 @@ export const placeOrderCtr = async (req, res, next) => {
             err = error;
             status = "Pending";
             note.push("unable to place order through the API at " + apiProviderDetails.name);
-            // let data = {
-            //     colombName: ["note", "status"],
-            //     NewColombNameValue: [`${note}`, status],
-    
-            //     conditionColombName: ["id"],
-            //     conditionColombValue: [`${result[0].insertId}`]
-            // };
             
             const newResult = await general.updateOrder(result.orderID, {note, status});
-            if (newResult && newResult.status == false) {
+            if (newResult && newResult.errz) {
                 return res.status(500).json({
                     status: 500,
+                    note: note,
                     ...newResult,
                 });
             }
@@ -442,10 +399,11 @@ export const placeOrderCtr = async (req, res, next) => {
             return res.status(202).json({
                 status: 202,
                 error: err,
+                note: note,
                 message: `service order could not be placed to the Provide (${apiProviderDetails.name}) through the API`
             });
         }
-        
+
     } catch (error) {
         if (!error.statusCode) {
             error.statusCode = 500;
@@ -977,7 +935,7 @@ export const getUserTicketMessageCtr = async (req, res, next) => {
         const ticketID = req.body.ticketID;
 
         const ticket = await user.getTicket({ticketID});
-        if (ticket && ticket.status == false) {
+        if (ticket && ticket.statuz == false) {
             return res.status(500).json({
                 status: 500,
                 message: ticket.message
@@ -1061,16 +1019,6 @@ export const addFundsCtr = async (req, res, next) => {
         // const email = req.email;
         const sentData = req.body;
 
-        // const ipResponse = await axios.get("http://ip-api.com/json");
-        // let extraData = JSON.parse(sentData.extraData);
-        // extraData.ip = ipResponse.data.query;
-        // extraData.lat = ipResponse.data.lat;
-        // extraData.lon = ipResponse.data.lon;
-        // extraData.country = ipResponse.data.country;
-        // extraData.usedNetwork = ipResponse.data.as;
-
-        // extraData = JSON.stringify(extraData);
-
         const data2send = {
             transactionID: sentData.transactionID,
             userID: userID,
@@ -1082,10 +1030,11 @@ export const addFundsCtr = async (req, res, next) => {
         };
 
         const result1 = await user.addFunds(data2send);
-        if (result1 && result1.status == false) {
+        if (result1 && result1.statuz == false) {
             return res.status(500).json({
                 status: 500,
-                message: result1.message
+                ...result1
+                // message: result1.message
             });
         }
 

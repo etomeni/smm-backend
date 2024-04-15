@@ -172,8 +172,8 @@ export const updateUserProfileCtr = async (req, res, next) => {
         const password = req.body.password;
         const formData = req.body.formData;
 
-        const formKeys = req.body.formKeys;
-        const formValues = req.body.formValues;
+        // const formKeys = req.body.formKeys;
+        // const formValues = req.body.formValues;
 
         const user = await auth.findByID(userID);
         if (user && user.status == false) {
@@ -225,14 +225,6 @@ export const updateUserProfileCtr = async (req, res, next) => {
         //     message: 'Ooopps unable to update password.',
         // });
 
-
-        const profileUpdateDetails = {
-            colombName: formKeys,
-            NewColombNameValue: formValues,
-
-            conditionColombName: ['userID'],
-            conditionColombValue: [`${userID}`]
-        };
 
         const updatedUser = await auth.updateUser( userID, formData);
         if (updatedUser && updatedUser.status == false) {

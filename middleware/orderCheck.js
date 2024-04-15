@@ -11,7 +11,7 @@ export const checkUsersPendingOrders = async (req, res, next) => {
         let apiProvider = await general.getActiveApiProvider({tbName: "status" , tbValue: 1});
 
         if (apiProvider.length && apiProvider.status != false) {
-            apiProvider = apiProvider[0];
+            apiProvider = apiProvider[0]._doc;
         }
     
         const getOrderData = {
@@ -20,37 +20,17 @@ export const checkUsersPendingOrders = async (req, res, next) => {
             status2: "Processing"
         };
         let orders = await general.getUserOrderByStatus(getOrderData);
-        
         if (orders.length && orders.status != false ) {
-            orders = orders[0];
     
             for (const order of orders) {
-                if (order.providerOrderID || order.providerOrderID != null) {
-                    let apiText = `${apiProvider.url}?key=${apiProvider.apiKey}&action=status&order=${order.providerOrderID}`;
+                if (order.providerOrderID) {
+                    const apiText = `${apiProvider.url}?key=${apiProvider.apiKey}&action=status&order=${order.providerOrderID}`;
                     const orderIdRes = await axios.post(apiText);
-    
                     if (orderIdRes.data.status == "Refunded") {
                         // get the user current data to check bal
                         const Cuser = await user.getCurrentUser({userID: getOrderData.userID});
-    
-                        // const RefundBal = {
-                        //     colombName: ["balance"],
-                        //     NewColombNameValue: [Cuser.balance + order.amount],
-                    
-                        //     conditionColombName: ["id"],
-                        //     conditionColombValue: [Cuser.id]
-                        // };
-                        
-                        await auth.updateUser(Cuser.userID, { balance: Cuser.balance + order.amount });
+                        const result = await auth.updateUser(Cuser.userID, { balance: Cuser.balance + order.amount });
                     }
-    
-                    // const updateData = {
-                    //     colombName: ["apiCharge", "status", "startCount", "remains"],
-                    //     NewColombNameValue: [`${orderIdRes.data.charge}`, `${orderIdRes.data.status}`, `${orderIdRes.data.start_count}`, `${orderIdRes.data.remains}`],
-            
-                    //     conditionColombName: ["id"],
-                    //     conditionColombValue: [`${order.id}`]
-                    // };
 
                     const data2update = {
                         apiCharge: orderIdRes.data.charge,
@@ -58,7 +38,7 @@ export const checkUsersPendingOrders = async (req, res, next) => {
                         startCount: orderIdRes.data.start_count,
                         remains: orderIdRes.data.remains,
                     };
-                    await general.updateOrder(order.orderID, data2update);
+                    const result1 = await general.updateOrder(order.orderID, data2update);
                 } else {
                     let apiText = `${apiProvider.url}?key=${apiProvider.apiKey}&action=add&service=${order.serviceID}&link=${order.link}&quantity=${order.quantity}`;
                     const response = await axios.post(apiText);

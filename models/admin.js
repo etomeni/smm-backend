@@ -39,16 +39,6 @@ export class admin {
             const result = await orderModel.countDocuments({}).exec();
             // const result = await orderModel.find({}).count();
             return result;
-
-            if (result) {
-                return result;
-            } else {
-                return {
-                    message: "Unable to count total orders.",
-                    status: false,
-                }
-            }
-            
         } catch (error) {
             return {
                 message: "Unable to count total orders.",
@@ -162,15 +152,7 @@ export class admin {
     static async getTotalPayments() {
         try {
             const result = await paymentTransactionModel.countDocuments({}).exec();
-
-            if (result) {
-                return result;
-            } else {
-                return {
-                    message: "Unable to count total payment transaction.",
-                    status: false,
-                }
-            }
+            return result;
         } catch (error) {
             return {
                 message: "Unable to count total payment transaction.",
@@ -187,15 +169,8 @@ export class admin {
     static async getTotalUsers() {
         try {
             const result = await userModel.countDocuments({});
+            return result;
 
-            if (result) {
-                return result;
-            } else {
-                return {
-                    message: "Unable to count total orders.",
-                    status: false,
-                }
-            }
         } catch (error) {
             return {
                 message: "Unable to count total orders.",
@@ -212,15 +187,7 @@ export class admin {
     static async getTotalUserUsers() {
         try {
             const result = await userModel.countDocuments({ role: { $ne: 'admin' } });
-
-            if (result) {
-                return result;
-            } else {
-                return {
-                    message: "Unable to count total orders.",
-                    status: false,
-                }
-            }
+            return result;
         } catch (error) {
             return {
                 message: "Unable to count total users.",
@@ -237,15 +204,7 @@ export class admin {
     static async getTotalTickets() {
         try {
             const result = await ticketModel.countDocuments({ status: 1 }).exec();
-
-            if (result) {
-                return result;
-            } else {
-                return {
-                    message: "Unable to count total tickets.",
-                    status: false,
-                }
-            }
+            return result;
         } catch (error) {
             return {
                 message: "Unable to count total tickets.",

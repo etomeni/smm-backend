@@ -219,20 +219,13 @@ export class general {
                     returnOriginal: false,
                 }
             );
-    
-            if (updatedOrder) {
-                return updatedOrder;
-            } else {
-                return {
-                    message: "unable to update user data",
-                    status: false
-                }
-            }
+            return updatedOrder;
         } catch (error) {
             return {
-                message: "unable to update user data",
+                message: `unable to update ${orderId} order data.`,
                 status: false,
-                error
+                errz: true,
+                ...error
             }
         }
     };

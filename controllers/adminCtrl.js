@@ -379,7 +379,7 @@ export const getUserCtr = async (req, res, next) => {
 
         return res.status(201).json({
             statusCode: 201,
-            user: user,
+            user: user[0],
             message: 'successful!'
         });
     } catch (error) {
@@ -395,8 +395,9 @@ export const updateUserProfileCtr = async (req, res, next) => {
     
     try {
         const userID = req.body.userID;
-        const formKeys = req.body.formKeys;
-        const formValues = req.body.formValues;
+        // const formKeys = req.body.formKeys;
+        // const formValues = req.body.formValues;
+        const newData = req.body.newData;
 
         const user = await auth.findByID(userID);
         if (user && user.status == false) {
@@ -410,20 +411,7 @@ export const updateUserProfileCtr = async (req, res, next) => {
                 msg: error.message
             });
         };
-       
-        const profileUpdateDetails = {
-            colombName: formKeys,
-            NewColombNameValue: formValues,
 
-            conditionColombName: ['userID'],
-            conditionColombValue: [`${userID}`]
-        };
-        console.log(profileUpdateDetails);
-        return res.status(500).json({message: "testing"});
-
-        const newData = {
-
-        };
         const updatedUser = await auth.updateUser(userID, newData);
         if (updatedUser && updatedUser.status == false) {
             return res.status(500).json({
@@ -698,7 +686,7 @@ export const getAllPaymentsCtr = async (req, res, next) => {
         for (let i = 0; i < Payments.length; i++) {
             const element = Payments[i];
 
-            let uzer = await admin.getUserByID(`${element.userID}`);
+            let uzer = await admin.getUserByID(element.userID);
             if (uzer && uzer.status == false) {
                 return res.status(500).json({
                     status: 500,
@@ -710,7 +698,8 @@ export const getAllPaymentsCtr = async (req, res, next) => {
             Payments[i].email = uzer.email;
             Payments[i].name = uzer.name;
 
-            const exraDatas = JSON.parse(element.extraData);
+            // const exraDatas = JSON.parse(element.extraData);
+            const exraDatas = element.extraData;
             Payments[i].country = exraDatas.country;
             Payments[i].transactionRef = exraDatas.transactionRef;
         }
@@ -763,16 +752,21 @@ export const deleteServiceCtr = async (req, res, next) => {
 export const getProviderServicesCtr = async (req, res, next) => {
 
     try {
-        let apiProvider = await general.getActiveApiProvider({tbName: "status" , tbValue: 1});
+        const apiProvider = await general.getActiveApiProvider({tbName: "status" , tbValue: 1});
         if (apiProvider && apiProvider.status == false) {
             return res.status(500).json({
                 status: 500,
                 ...apiProvider
             });
         }
-        apiProvider = apiProvider[0];
 
-        const providerServices = await axios.post(`${apiProvider.url}?key=${apiProvider.apiKey}&action=services`);
+        // const responze = JSON.stringify(apiProvider[0]);
+        // const response = JSON.parse(responze);
+
+        const response = apiProvider[0]._doc;
+
+        const url = `${response.url}?key=${response.apiKey}&action=services`;
+        const providerServices = await axios.post(url);
 
         return res.status(201).json({
             status: 201,

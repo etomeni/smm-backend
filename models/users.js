@@ -7,59 +7,60 @@ import { ticketModel } from "./../util/tickets.model.js"
 
 export class auth {
     static async findEmail(email) {
-        const userExists = await userModel.findOne({ email });
-
-        if (userExists) {
+        try {
+            const userExists = await userModel.findOne({ email });
             return userExists;
-        } else {
+            
+        } catch (error) {
             return {
                 message: "No user with such email.",
-                status: false
+                status: false,
+                ...error
             }
         }
-
     };
 
     static async findUsername(username) {
-        const userExists = await userModel.findOne({ username });
-
-        if (userExists) {
+        try {
+            const userExists = await userModel.findOne({ username });
             return userExists;
-        } else {
+        } catch (error) {
             return {
                 message: "No user with such username.",
-                status: false
+                status: false,
+                ...error
             }
         }
     };
 
     static async find(usernameEmail) {
-        const userExists = await userModel.findOne({
-            $or: [
-              { email: usernameEmail },
-              { username: usernameEmail }
-            ]
-        });
+        try {
+            const userExists = await userModel.findOne({
+                $or: [
+                { email: usernameEmail },
+                { username: usernameEmail }
+                ]
+            });
 
-        if (userExists) {
             return userExists;
-        } else {
+        } catch (error) {
             return {
                 message: "No user with such username or email.",
-                status: false
+                status: false,
+                ...error
             }
         }
     };
 
     static async findByID(userId) {
-        const userExists = await userModel.findOne({ userID: userId });
-
-        if (userExists) {
+        try {
+            const userExists = await userModel.findOne({ userID: userId });
             return userExists;
-        } else {
+        } catch (error) {
             return {
                 message: "No user with such user id.",
-                status: false
+                status: false,
+                ...error
             }
         }
     };
@@ -123,19 +124,13 @@ export class auth {
                 }
             );
     
-            if (updatedUser) {
-                return updatedUser;
-            } else {
-                return {
-                    message: "unable to update user data",
-                    status: false
-                }
-            }
+            return updatedUser;
+            
         } catch (error) {
             return {
                 message: "unable to update user data",
                 status: false,
-                error
+                ...error
             }
             
         }
@@ -160,7 +155,7 @@ export class user {
             return {
                 message: "Unable to update user balance.",
                 status: false,
-                error
+                ...error
             }
         }
     };
@@ -168,19 +163,12 @@ export class user {
     static async getCurrentUser(user) {
         try {
             const exisitingUser = await userModel.findOne({ userID: user.userID });
-            if (exisitingUser) {
-                return exisitingUser;
-            } else {
-                return {
-                    message: "Error creating new transaction.",
-                    status: false,
-                }
-            }
+            return exisitingUser;
         } catch (error) {
             return {
                 message: "Error creating new transaction.",
                 status: false,
-                error
+                ...error
             }
         }
 
@@ -219,19 +207,12 @@ export class user {
     static async getOrderById(id) {
         try {
             const order = await orderModel.findById(id);
-            if (order) {
-                return order;
-            } else {
-                return {
-                    status: false,
-                    message: `Order with ID "${id}" not found.`,
-                }
-            }
+            return order;
         } catch (error) {
             return {
-                message: "unable to get orders",
+                message: `Order with ID "${id}" not found.`,
                 status: false,
-                error
+                ...error
             }
         }
 
@@ -296,19 +277,18 @@ export class user {
     static async getTicket(ticket) {
         try {
             const ticketData = await ticketModel.findOne({ ticketID: ticket.ticketID });
-
             if (ticketData) {
-                return ticketData;
+                return ticketData._doc;
             } else {
                 return {
-                    status: false,
+                    statuz: false,
                     message: `unable to get tickets.`,
                 }
             }
         } catch (error) {
             return {
                 message: error.Error ||error.error || "unable to get tickets",
-                status: false,
+                statuz: false,
                 error
             }
         }
@@ -384,19 +364,12 @@ export class user {
             });
     
             const result = await paymentTransaction.save();
-            if (result) {
-                return result;
-            } else {
-                return {
-                    message: "Error creating new transaction.",
-                    status: false
-                }
-            }
+            return result;
         } catch (error) {
             return {
                 message: "Error adding funds to account.",
-                status: false,
-                error
+                statuz: false,
+                ...error
             }
         }
 

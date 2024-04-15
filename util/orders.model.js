@@ -56,8 +56,8 @@ const orderSchema = mongoose.Schema(
             type: Number,
         },
         note: {
-            type: String,
-            required: true
+            type: Object,
+            // required: true
         },
         status: {
             type: String,
